@@ -1,0 +1,11 @@
+{
+  "message": "Hello, quantum-resistant world!",
+  "signature": {
+    "message_hash": "d9558d1bf01de2a57c21b76623e24e624ea6e7c6663878a9ba347c03803b39a3",
+    "pub_seed": "09a07e03749f469d82980ac3f37b7df526345d08e362cee6018789080603d4d0",
+    "root": "e9da32c6e5da74043923fda6de363302d398f296e6c25515308e02931d64390f",
+    "timestamp": 1759999815225
+  },
+  "keyPairUsed": 1,
+  "timestamp": "2025-10-09T08:50:15.225Z"
+}
