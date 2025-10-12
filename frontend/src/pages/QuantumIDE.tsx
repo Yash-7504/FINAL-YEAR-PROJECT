@@ -8,15 +8,12 @@ import {
   Button,
   TextField,
   Alert,
-  Chip,
   Stack,
   Divider
 } from '@mui/material';
 import {
   Code as CodeIcon,
-  Rocket as DeployIcon,
-  Security as SecurityIcon,
-  Verified as VerifiedIcon
+  Rocket as DeployIcon
 } from '@mui/icons-material';
 import { ethers } from 'ethers';
 

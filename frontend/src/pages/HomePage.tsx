@@ -321,16 +321,13 @@ import {
   Card,
   CardContent,
   Fade,
-  Stack,
   Divider,
   Button
 } from '@mui/material';
 import { 
-  Security as SecurityIcon,
   AccountBalanceWallet as WalletIcon,
   Send as SendIcon,
-  VpnKey as KeyIcon,
-  Rocket as RocketIcon
+  VpnKey as KeyIcon
 } from '@mui/icons-material';
 import { ethers } from 'ethers';
 import WalletConnection from '../components/WalletConnection';

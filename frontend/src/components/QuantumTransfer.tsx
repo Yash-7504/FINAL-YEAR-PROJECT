@@ -4,8 +4,7 @@ import {
   TextField, 
   Typography, 
   Box, 
-  Stack,
-  Alert
+  Stack
 } from '@mui/material';
 import { ethers } from 'ethers';
 import RocketAnimation from './RocketAnimation';
