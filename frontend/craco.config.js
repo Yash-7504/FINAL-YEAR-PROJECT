@@ -1,8 +1,15 @@
 const webpack = require('webpack');
+const path = require('path');
 
 module.exports = {
   webpack: {
     configure: (webpackConfig) => {
+      // Add path alias for @ imports
+      webpackConfig.resolve.alias = {
+        ...webpackConfig.resolve.alias,
+        '@': path.resolve(__dirname, 'src'),
+      };
+      
       webpackConfig.resolve.fallback = {
         "assert": require.resolve("assert/"),
         "buffer": require.resolve("buffer/"),

@@ -1,79 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { Box, Tabs, Tab } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import HomePage from './pages/HomePage';
-import QuantumIDE from './pages/QuantumIDE';
-import SpaceBackground from './components/SpaceBackground';
 import './App.css';
 
-const theme = createTheme({
+const ThemeContext = createContext({ darkMode: false, toggleDarkMode: () => {} });
+
+export const useTheme = () => useContext(ThemeContext);
+
+const createAppTheme = (darkMode: boolean) => createTheme({
   palette: {
-    mode: 'dark',
+    mode: darkMode ? 'dark' : 'light',
     primary: {
-      main: '#00d4ff',
-      light: '#4de3ff',
-      dark: '#0099cc',
+      main: '#6366f1',
+      light: '#818cf8',
+      dark: '#4f46e5',
     },
     secondary: {
-      main: '#b347d9',
-      light: '#d575f0',
-      dark: '#8a2eb8',
+      main: '#f59e0b',
+      light: '#fbbf24',
+      dark: '#d97706',
     },
     success: {
-      main: '#39ff14',
+      main: '#10b981',
+    },
+    error: {
+      main: '#ef4444',
     },
     background: {
-      default: 'transparent',
-      paper: 'rgba(26, 26, 46, 0.8)',
+      default: darkMode ? '#0f172a' : '#f8fafc',
+      paper: darkMode ? '#1e293b' : '#ffffff',
     },
     text: {
-      primary: '#ffffff',
-      secondary: '#b0b0b0',
+      primary: darkMode ? '#f1f5f9' : '#1e293b',
+      secondary: darkMode ? '#94a3b8' : '#64748b',
     },
   },
   typography: {
-    fontFamily: '"Exo 2", "Orbitron", sans-serif',
-    h1: {
-      fontFamily: '"Orbitron", monospace',
-      fontSize: '3.5rem',
-      fontWeight: 900,
-      letterSpacing: '0.1em',
-    },
-    h2: {
-      fontFamily: '"Orbitron", monospace',
-      fontSize: '2rem',
+    fontFamily: '"Inter", "Roboto", sans-serif',
+    h4: {
       fontWeight: 700,
+      fontSize: '1.875rem',
     },
     h6: {
-      fontFamily: '"Orbitron", monospace',
-      fontSize: '1.25rem',
-      fontWeight: 500,
+      fontWeight: 600,
+      fontSize: '1.125rem',
     },
     body1: {
       fontSize: '1rem',
-      lineHeight: 1.6,
+      lineHeight: 1.5,
     },
   },
   shape: {
-    borderRadius: 20,
+    borderRadius: 12,
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: 'uppercase',
-          borderRadius: 25,
-          padding: '12px 30px',
-          fontSize: '0.9rem',
-          fontWeight: 600,
-          letterSpacing: '0.1em',
-          position: 'relative',
-          overflow: 'hidden',
-          transition: 'all 0.3s ease',
+          textTransform: 'none',
+          borderRadius: 8,
+          padding: '10px 20px',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          boxShadow: 'none',
           '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: '0 10px 30px rgba(0, 212, 255, 0.3)',
+            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.15)',
           },
         },
       },
@@ -81,27 +73,8 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          background: 'rgba(26, 26, 46, 0.8)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(0, 212, 255, 0.3)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-        },
-      },
-    },
-    MuiAlert: {
-      styleOverrides: {
-        root: {
-          background: 'rgba(26, 26, 46, 0.9)',
-          border: '1px solid rgba(0, 212, 255, 0.3)',
-          color: '#ffffff',
-        },
-      },
-    },
-    MuiChip: {
-      styleOverrides: {
-        root: {
-          fontWeight: 500,
-          letterSpacing: '0.05em',
+          boxShadow: darkMode ? '0 1px 3px rgba(0, 0, 0, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
+          border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0',
         },
       },
     },
@@ -109,41 +82,21 @@ const theme = createTheme({
 });
 
 function App() {
-  const [currentTab, setCurrentTab] = useState(0);
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setCurrentTab(newValue);
+  const [darkMode, setDarkMode] = useState(false);
+  
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <div className="App">
-        <SpaceBackground />
-        
-        {/* Navigation Tabs */}
-        <Box sx={{ position: 'fixed', top: 10, right: 20, zIndex: 1000 }}>
-          <Tabs 
-            value={currentTab} 
-            onChange={handleTabChange}
-            sx={{
-              '& .MuiTab-root': {
-                color: '#00d4ff',
-                fontWeight: 600,
-                fontSize: '0.8rem'
-              }
-            }}
-          >
-            <Tab label="WALLET" />
-            <Tab label="QUANTUM IDE" />
-          </Tabs>
-        </Box>
-
-        {/* Page Content */}
-        {currentTab === 0 && <HomePage />}
-        {currentTab === 1 && <QuantumIDE />}
-      </div>
-    </ThemeProvider>
+    <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
+      <ThemeProvider theme={createAppTheme(darkMode)}>
+        <CssBaseline />
+        <div className="App">
+          <HomePage />
+        </div>
+      </ThemeProvider>
+    </ThemeContext.Provider>
   );
 }
 

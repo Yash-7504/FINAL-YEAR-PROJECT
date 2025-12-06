@@ -1,7 +1,7 @@
 {
   "name": "quantum-resistant-smart-contracts",
   "version": "1.0.0",
-  "description": "Quantum-Resistant Smart Contracts Using SPHINCS+ - A stateless hash-based post-quantum approach for securing blockchain applications",
+  "description": "Quantum-Resistant Wallet Using SPHINCS+ - A secure wallet for quantum-resistant blockchain transactions",
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",

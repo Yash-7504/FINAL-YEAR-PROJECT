@@ -6,7 +6,7 @@ import "./HashFunctions.sol";
 /**
  * @title SPHINCS+ Post-Quantum Digital Signature Verification
  * @dev Implements SPHINCS+ signature verification for quantum-resistant security
- * @author KORIMILLI YASH VENKAT
+ * @author YASH VENKAT
  */
 contract SPHINCS {
     using HashFunctions for bytes32;

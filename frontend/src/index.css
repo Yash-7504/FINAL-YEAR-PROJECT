@@ -1,13 +1,119 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-space-dark: #0a0a0f;
+  --bg-deep-space: #1a1a2e;
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --cyber-cyan: #00d4ff;
+  --quantum-cyan: #4de3ff;
+  --quantum-green: #39ff14;
+  --quantum-amber: #fbbf24;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+[data-theme="dark"] {
+  --bg-space-dark: #0a0a0f;
+  --bg-deep-space: #1a1a2e;
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+}
+
+[data-theme="light"] {
+  --bg-space-dark: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  --bg-deep-space: linear-gradient(135deg, #ddd6fe 0%, #c7d2fe 100%);
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --cyber-cyan: #4f46e5;
+  --quantum-cyan: #6366f1;
+  --quantum-green: #059669;
+  --quantum-amber: #d97706;
+}
+
+.bg-space-dark {
+  background: var(--bg-space-dark);
+}
+
+.bg-deep-space {
+  background: var(--bg-deep-space);
+}
+
+.text-text-primary {
+  color: var(--text-primary);
+}
+
+.text-text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-cyber-cyan {
+  color: var(--cyber-cyan);
+}
+
+.text-quantum-cyan {
+  color: var(--quantum-cyan);
+}
+
+.text-quantum-green {
+  color: var(--quantum-green);
+}
+
+.text-quantum-amber {
+  color: var(--quantum-amber);
+}
+
+/* Force text visibility in light mode */
+[data-theme="light"] * {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .text-cyber-cyan,
+[data-theme="light"] .text-quantum-cyan,
+[data-theme="light"] .text-quantum-green,
+[data-theme="light"] .text-quantum-amber {
+  color: var(--cyber-cyan) !important;
+}
+
+[data-theme="light"] button {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .bg-white {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  color: #1e293b !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Fix dialogs and modals in light mode */
+[data-theme="light"] [role="dialog"],
+[data-theme="light"] .MuiDialog-paper,
+[data-theme="light"] .MuiPaper-root {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  color: #1e293b !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme="light"] .MuiDialogTitle-root,
+[data-theme="light"] .MuiDialogContent-root,
+[data-theme="light"] .MuiDialogActions-root {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .MuiTextField-root input,
+[data-theme="light"] .MuiTextField-root label {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .MuiInputBase-root {
+  color: #1e293b !important;
+}
+
+/* Fix all cards and components */
+[data-theme="light"] .bg-card-dark,
+[data-theme="light"] .bg-surface-dark {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  color: #1e293b !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }

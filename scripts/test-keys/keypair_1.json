@@ -1,0 +1,19 @@
+{
+  "privateKey": {
+    "sk_seed": "fb17ad2d3cfe4d0382cacf6d168bf6f8d0528d226eecb10e8af6734755331fae",
+    "sk_prf": "1d4d88748e43c217a70a0ebdd60467c9d445c425f0284946fe611615d2facd11",
+    "pub_seed": "8471d2f6ed2e45f0ba9813222f709a89090aa766bc8e0d4df21ad8ced3347cfc",
+    "n": 32,
+    "h": 32,
+    "d": 4,
+    "w": 16
+  },
+  "publicKey": {
+    "pub_seed": "8471d2f6ed2e45f0ba9813222f709a89090aa766bc8e0d4df21ad8ced3347cfc",
+    "root": "8c24299f72484d3c5e3cadbb5fd58912f9651d7b98f6fc793773110095c11bbe",
+    "n": 32,
+    "h": 32,
+    "d": 4,
+    "w": 16
+  }
+}

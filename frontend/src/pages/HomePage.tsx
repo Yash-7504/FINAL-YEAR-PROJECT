@@ -1,359 +1,55 @@
-// import React, { useState, useEffect } from 'react';
-// import { 
-//   Container, 
-//   Typography, 
-//   Box, 
-//   Alert, 
-//   Chip,
-//   Card,
-//   CardContent,
-//   Fade,
-//   Stack,
-//   Divider
-// } from '@mui/material';
-// import { 
-//   Security as SecurityIcon,
-//   AccountBalanceWallet as WalletIcon,
-//   Send as SendIcon,
-//   VpnKey as KeyIcon,
-//   Rocket as RocketIcon
-// } from '@mui/icons-material';
-// import { ethers } from 'ethers';
-// import WalletConnection from '../components/WalletConnection';
-// import KeyManager from '../components/KeyManager';
-// import TokenDashboard from '../components/TokenDashboard';
-// import QuantumTransfer from '../components/QuantumTransfer';
-// import { NETWORKS, QUANTUM_TOKEN_ABI, SPHINCS_ABI } from '../contracts/abis';
-
-// const HomePage: React.FC = () => {
-//   const [account, setAccount] = useState<string>('');
-//   const [provider, setProvider] = useState<ethers.providers.Web3Provider | null>(null);
-//   const [quantumToken, setQuantumToken] = useState<ethers.Contract | null>(null);
-//   const [sphincs, setSphincs] = useState<ethers.Contract | null>(null);
-//   const [balance, setBalance] = useState<string>('0');
-//   const [isKeyRegistered, setIsKeyRegistered] = useState<boolean>(false);
-//   const [currentNetwork, setCurrentNetwork] = useState<string>('localhost');
-
-//   // Auto-detect network
-//   const detectNetwork = async () => {
-//     if (window.ethereum) {
-//       try {
-//         const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-//         if (chainId === '0x1') setCurrentNetwork('mainnet');
-//         else if (chainId === '0xaa36a7') setCurrentNetwork('sepolia');
-//         else setCurrentNetwork('localhost');
-//       } catch (error) {
-//         console.log('Using localhost as default network');
-//       }
-//     }
-//   };
-
-//   useEffect(() => {
-//     checkWalletConnection();
-//     detectNetwork();
-//   }, []);
-
-//   useEffect(() => {
-//     if (provider && account) {
-//       initializeContracts();
-//     }
-//   }, [provider, account, currentNetwork]);
-
-//   const checkWalletConnection = async () => {
-//     if (window.ethereum) {
-//       try {
-//         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-//         if (accounts.length > 0) {
-//           const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-//           setProvider(web3Provider);
-//           setAccount(accounts[0]);
-//         }
-//       } catch (error) {
-//         console.error('Error checking wallet connection:', error);
-//       }
-//     }
-//   };
-
-//   const initializeContracts = async () => {
-//     if (!provider) return;
-
-//     try {
-//       const signer = provider.getSigner();
-//       const network = NETWORKS[currentNetwork as keyof typeof NETWORKS];
-      
-//       if (!network.contracts.QUANTUM_TOKEN || !network.contracts.SPHINCS) {
-//         console.warn('Contracts not configured for', currentNetwork, '- using localhost addresses');
-//         const fallbackNetwork = NETWORKS.localhost;
-//         network.contracts = fallbackNetwork.contracts;
-//       }
-      
-//       const tokenContract = new ethers.Contract(
-//         network.contracts.QUANTUM_TOKEN,
-//         QUANTUM_TOKEN_ABI,
-//         signer
-//       );
-      
-//       const sphincsContract = new ethers.Contract(
-//         network.contracts.SPHINCS,
-//         SPHINCS_ABI,
-//         signer
-//       );
-
-//       setQuantumToken(tokenContract);
-//       setSphincs(sphincsContract);
-
-//       // Check if contracts are deployed by testing a simple call
-//       try {
-//         const bal = await tokenContract.balanceOf(account);
-//         setBalance(ethers.utils.formatEther(bal));
-
-//         const keyRegistered = await tokenContract.isPublicKeyRegistered(account);
-//         setIsKeyRegistered(keyRegistered);
-//       } catch (contractError: any) {
-//         console.warn('Contracts not deployed or not accessible:', contractError.message);
-//         // Set default values when contracts aren't available
-//         setBalance('0');
-//         setIsKeyRegistered(false);
-//       }
-
-//     } catch (error) {
-//       console.error('Error initializing contracts:', error);
-//       // Set default values on error
-//       setBalance('0');
-//       setIsKeyRegistered(false);
-//     }
-//   };
-
-//   const handleWalletConnect = async () => {
-//     if (window.ethereum) {
-//       try {
-//         await window.ethereum.request({ method: 'eth_requestAccounts' });
-//         const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-//         const accounts = await web3Provider.listAccounts();
-//         setProvider(web3Provider);
-//         setAccount(accounts[0]);
-//         await detectNetwork();
-//       } catch (error) {
-//         console.error('Error connecting wallet:', error);
-//       }
-//     } else {
-//       alert('Please install MetaMask!');
-//     }
-//   };
-
-//   const handleKeyRegistered = () => {
-//     setIsKeyRegistered(true);
-//   };
-
-//   const refreshBalance = async () => {
-//     if (quantumToken && account) {
-//       const bal = await quantumToken.balanceOf(account);
-//       setBalance(ethers.utils.formatEther(bal));
-//     }
-//   };
-
-//   return (
-//     <Box sx={{ minHeight: '100vh', py: 4, position: 'relative', zIndex: 1 }}>
-//       <Container maxWidth="md">
-//         {/* Header */}
-//         <Fade in timeout={800}>
-//           <Box textAlign="center" mb={6} className="float">
-//             <RocketIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} className="pulse" />
-//             <Typography variant="h1" className="space-title" sx={{ mb: 2 }}>
-//               QUANTUM SECURE SMART-CONTRACT
-//             </Typography>
-//             <Typography variant="h6" className="neon-blue" sx={{ mb: 3, fontWeight: 300 }}>
-//               Post-Quantum Blockchain Protocol
-//             </Typography>
-//             <Stack direction="row" spacing={2} justifyContent="center" mb={3}>
-//               {/* <Chip 
-//                 label="QUANTUM SHIELD" 
-//                 color="primary" 
-//                 className="neon-blue"
-//                 sx={{ fontWeight: 600 }}
-//               />
-//               <Chip  
-//                 label="SPHINCS+ CORE" 
-//                 color="secondary" 
-//                 className="neon-purple"
-//                 sx={{ fontWeight: 600 }}
-//               /> */}
-//             </Stack>
-//             <Typography variant="body2" className="neon-green" sx={{ fontWeight: 500 }}>
-//               [ DEVELOPED BY KAPARTHI SATHVIK & KORIMILLI YASH VENKAT ]
-//             </Typography>
-//           </Box>
-//         </Fade>
-
-//         {!account ? (
-//           <Fade in timeout={1000}>
-//             <Box display="flex" justifyContent="center">
-//               <Card className="space-card float" sx={{ maxWidth: 450, width: '100%' }}>
-//                 <CardContent sx={{ p: 4 }}>
-//                   <WalletConnection onConnect={handleWalletConnect} />
-//                 </CardContent>
-//               </Card>
-//             </Box>
-//           </Fade>
-//         ) : (
-//           <Fade in timeout={600}>
-//             <Stack spacing={4}>
-//               {/* Status */}
-//               <Alert 
-//                 severity="success" 
-//                 sx={{ 
-//                   borderRadius: 4,
-//                   background: 'rgba(57, 255, 20, 0.1)',
-//                   border: '1px solid rgba(57, 255, 20, 0.3)',
-//                   color: '#39ff14'
-//                 }}
-//               >
-//                 <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
-//                   <Typography fontWeight={600} className="neon-green">
-//                     CONNECTED: {account.slice(0, 8)}...{account.slice(-6)}
-//                   </Typography>
-//                   <Box display="flex" alignItems="center" gap={2}>
-//                     <Typography variant="body2" className="neon-green" sx={{ opacity: 0.8 }}>
-//                       •
-//                     </Typography>
-//                     <Chip 
-//                       label={currentNetwork.toUpperCase()}
-//                       size="small" 
-//                       color="success"
-//                       sx={{ fontWeight: 600, fontSize: '0.75rem' }}
-//                     />
-//                   </Box>
-//                 </Box>
-//               </Alert>
-
-//               {/* Main Control Panel */}
-//               <Card className="space-card" sx={{ position: 'relative' }}>
-//                 <CardContent sx={{ p: 5 }}>
-//                   {/* Key Manager Section */}
-//                   <Box mb={5}>
-//                     <Box display="flex" alignItems="center" mb={4}>
-//                       <KeyIcon className="neon-blue" sx={{ mr: 2, fontSize: 28 }} />
-//                       <Typography variant="h6" className="neon-blue" sx={{ fontWeight: 700 }}>
-//                         QUANTUM KEY MATRIX
-//                       </Typography>
-//                     </Box>
-//                     <KeyManager
-//                       account={account}
-//                       quantumToken={quantumToken}
-//                       sphincs={sphincs}
-//                       isKeyRegistered={isKeyRegistered}
-//                       onKeyRegistered={handleKeyRegistered}
-//                     />
-//                   </Box>
-
-//                   <Divider sx={{ 
-//                     my: 4, 
-//                     background: 'linear-gradient(90deg, transparent, #00d4ff, transparent)',
-//                     height: 2
-//                   }} />
-
-//                   {/* Token Dashboard Section */}
-//                   <Box mb={5}>
-//                     <Box display="flex" alignItems="center" mb={4}>
-//                       <WalletIcon className="neon-purple" sx={{ mr: 2, fontSize: 28 }} />
-//                       <Typography variant="h6" className="neon-purple" sx={{ fontWeight: 700 }}>
-//                         QUANTUM VAULT
-//                       </Typography>
-//                     </Box>
-//                     <TokenDashboard
-//                       balance={balance}
-//                       account={account}
-//                       quantumToken={quantumToken}
-//                       onBalanceUpdate={refreshBalance}
-//                     />
-//                   </Box>
-
-//                   {/* Transfer Section */}
-//                   {isKeyRegistered && (
-//                     <>
-//                       <Divider sx={{ 
-//                         my: 4, 
-//                         background: 'linear-gradient(90deg, transparent, #b347d9, transparent)',
-//                         height: 2
-//                       }} />
-//                       <Box>
-//                         <Box display="flex" alignItems="center" mb={4}>
-//                           <SendIcon className="neon-green" sx={{ mr: 2, fontSize: 28 }} />
-//                           <Typography variant="h6" className="neon-green" sx={{ fontWeight: 700 }}>
-//                             QUANTUM TRANSFER PROTOCOL
-//                           </Typography>
-//                         </Box>
-//                         <QuantumTransfer
-//                           account={account}
-//                           quantumToken={quantumToken}
-//                           balance={balance}
-//                           onTransferComplete={refreshBalance}
-//                         />
-//                       </Box>
-//                     </>
-//                   )}
-//                 </CardContent>
-//               </Card>
-
-//               {/* Footer */}
-//               <Box textAlign="center" mt={4}>
-//                 <Typography variant="body2" className="neon-blue" sx={{ opacity: 0.7 }}>
-//                   [ FINAL YEAR PROJECT - BLOCKCHAIN TECHNOLOGY ]
-//                 </Typography>
-//               </Box>
-//             </Stack>
-//           </Fade>
-//         )}
-//       </Container>
-//     </Box>
-//   );
-// };
-
-// export default HomePage;
-
 import React, { useState, useEffect } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Box, 
-  Alert, 
-  Chip,
-  Card,
-  CardContent,
-  Fade,
-  Divider,
-  Button
-} from '@mui/material';
-import { 
-  AccountBalanceWallet as WalletIcon,
-  Send as SendIcon,
-  VpnKey as KeyIcon
-} from '@mui/icons-material';
 import { ethers } from 'ethers';
-import WalletConnection from '../components/WalletConnection';
-import KeyManager from '../components/KeyManager';
-import TokenDashboard from '../components/TokenDashboard';
-import QuantumTransfer from '../components/QuantumTransfer';
-import { NETWORKS, QUANTUM_TOKEN_ABI, SPHINCS_ABI } from '../contracts/abis';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Wallet, Send, ShieldCheck, Atom, Sparkles, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../App';
+import { BalanceCard } from '@/components/wallet/BalanceCard';
+import { WalletHeader } from '@/components/wallet/WalletHeader';
+import { TransactionItem } from '@/components/wallet/TransactionItem';
+import { SendDialog } from '@/components/wallet/SendDialog';
+import { KeyDialog } from '@/components/wallet/KeyDialog';
+import { NETWORKS, QUANTUM_TOKEN_ABI } from '../contracts/abis';
+import { Transaction } from '@/types/schema';
+import { TokenType, NetworkName } from '@/types/enums';
+import { toast } from 'sonner';
 
 const HomePage: React.FC = () => {
+  const { darkMode, toggleDarkMode } = useTheme();
   const [account, setAccount] = useState<string>('');
   const [provider, setProvider] = useState<ethers.providers.Web3Provider | null>(null);
   const [quantumToken, setQuantumToken] = useState<ethers.Contract | null>(null);
-  const [sphincs, setSphincs] = useState<ethers.Contract | null>(null);
-  const [balance, setBalance] = useState<string>('0');
+  const [ethBalance, setEthBalance] = useState<string>('0');
+  const [qtcBalance, setQtcBalance] = useState<string>('0');
   const [isKeyRegistered, setIsKeyRegistered] = useState<boolean>(false);
-  const [currentNetwork, setCurrentNetwork] = useState<string>('localhost');
+  const [currentNetwork, setCurrentNetwork] = useState<NetworkName>('Localhost');
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [keyDialogOpen, setKeyDialogOpen] = useState(false);
+  const [sendType, setSendType] = useState<TokenType>('ETH');
+  const [transactions, setTransactions] = useState<Transaction[]>(() => {
+    const saved = localStorage.getItem('wallet_transactions');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+  const [txStatusOpen, setTxStatusOpen] = useState(false);
+  const [txStatus, setTxStatus] = useState<{ success: boolean; hash?: string; message: string }>({ success: false, message: '' });
+  const [currentPage, setCurrentPage] = useState(0);
 
   const detectNetwork = async () => {
     if (window.ethereum) {
       try {
         const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        if (chainId === '0x1') setCurrentNetwork('mainnet');
-        else if (chainId === '0xaa36a7') setCurrentNetwork('sepolia');
-        else setCurrentNetwork('localhost');
+        const networkNames: { [key: string]: NetworkName } = {
+          '0x1': 'Ethereum',
+          '0xaa36a7': 'Sepolia',
+          '0x89': 'Polygon',
+          '0x13881': 'Mumbai'
+        };
+        setCurrentNetwork(networkNames[chainId] || 'Unknown');
       } catch (error) {
-        console.log('Using localhost as default network');
+        setCurrentNetwork('Unknown');
       }
     }
   };
@@ -366,14 +62,9 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     if (provider && account) {
       initializeContracts();
+      refreshBalances();
     }
-  }, [provider, account, currentNetwork]);
-
-  useEffect(() => {
-    if (quantumToken && account) {
-      refreshBalance();
-    }
-  }, [quantumToken, account]);
+  }, [provider, account]);
 
   const checkWalletConnection = async () => {
     if (window.ethereum) {
@@ -395,46 +86,33 @@ const HomePage: React.FC = () => {
 
     try {
       const signer = provider.getSigner();
-      const network = NETWORKS[currentNetwork as keyof typeof NETWORKS];
-      
-      if (!network.contracts.QUANTUM_TOKEN || !network.contracts.SPHINCS) {
-        console.warn('Contracts not configured for', currentNetwork, '- using localhost addresses');
-        const fallbackNetwork = NETWORKS.localhost;
-        network.contracts = fallbackNetwork.contracts;
-      }
+      const network = NETWORKS.localhost;
       
       const tokenContract = new ethers.Contract(
         network.contracts.QUANTUM_TOKEN,
         QUANTUM_TOKEN_ABI,
         signer
       );
-      
-      const sphincsContract = new ethers.Contract(
-        network.contracts.SPHINCS,
-        SPHINCS_ABI,
-        signer
-      );
 
       setQuantumToken(tokenContract);
-      setSphincs(sphincsContract);
 
-      try {
-        const bal = await tokenContract.balanceOf(account);
-        setBalance(ethers.utils.formatEther(bal));
-        console.log('Balance loaded:', ethers.utils.formatEther(bal));
-
-        const keyRegistered = await tokenContract.isPublicKeyRegistered(account);
-        setIsKeyRegistered(keyRegistered);
-      } catch (contractError: any) {
-        console.warn('Contracts not deployed or not accessible:', contractError.message);
-        setBalance('0');
-        setIsKeyRegistered(false);
+      // Check localStorage first, then contract if not found
+      const savedKeyStatus = localStorage.getItem(`quantum_key_${account}`);
+      if (savedKeyStatus === 'true') {
+        setIsKeyRegistered(true);
+      } else {
+        try {
+          const keyRegistered = await tokenContract.isPublicKeyRegistered(account);
+          setIsKeyRegistered(keyRegistered);
+          if (keyRegistered) {
+            localStorage.setItem(`quantum_key_${account}`, 'true');
+          }
+        } catch (error) {
+          setIsKeyRegistered(false);
+        }
       }
-
     } catch (error) {
       console.error('Error initializing contracts:', error);
-      setBalance('0');
-      setIsKeyRegistered(false);
     }
   };
 
@@ -447,227 +125,466 @@ const HomePage: React.FC = () => {
         setProvider(web3Provider);
         setAccount(accounts[0]);
         await detectNetwork();
-        // Force contract initialization after connection
-        setTimeout(async () => {
-          const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-          if (chainId === '0xaa36a7') setCurrentNetwork('sepolia');
-          else if (chainId === '0x1') setCurrentNetwork('mainnet');
-          else setCurrentNetwork('localhost');
-        }, 100);
+        toast.success('Wallet connected successfully!');
       } catch (error) {
         console.error('Error connecting wallet:', error);
+        toast.error('Failed to connect wallet');
       }
     } else {
-      alert('Please install MetaMask!');
+      toast.error('Please install MetaMask!');
     }
   };
 
-  const handleKeyRegistered = () => {
-    setIsKeyRegistered(true);
-  };
+  const refreshBalances = async () => {
+    if (!provider || !account) return;
 
-  const handleWalletDisconnect = async () => {
     try {
-      if (window.ethereum && window.ethereum.request) {
-        await window.ethereum.request({
-          method: 'wallet_revokePermissions',
-          params: [{ eth_accounts: {} }]
-        });
+      const ethBal = await provider.getBalance(account);
+      setEthBalance(ethers.utils.formatEther(ethBal));
+
+      if (quantumToken) {
+        try {
+          const qtcBal = await quantumToken.balanceOf(account);
+          setQtcBalance(ethers.utils.formatEther(qtcBal));
+        } catch (error) {
+          setQtcBalance('0');
+        }
       }
     } catch (error) {
-      console.log('Permission revoke not supported, clearing state only');
+      console.error('Error refreshing balances:', error);
     }
-    
-    // Clear all state
-    setAccount('');
-    setProvider(null);
-    setQuantumToken(null);
-    setSphincs(null);
-    setBalance('0');
-    setIsKeyRegistered(false);
-    setCurrentNetwork('localhost');
   };
 
-  const refreshBalance = async () => {
-    if (quantumToken && account) {
-      try {
-        const bal = await quantumToken.balanceOf(account);
-        setBalance(ethers.utils.formatEther(bal));
-      } catch (error) {
-        console.log('Balance refresh failed, will retry on next render');
-        setBalance('0');
-      }
+  const handleSendETH = async (recipient: string, amount: string) => {
+    if (!provider || !recipient || !amount) return;
+
+    setIsLoading(true);
+    setSendDialogOpen(false);
+    
+    try {
+      const signer = provider.getSigner();
+      const tx = await signer.sendTransaction({
+        to: recipient,
+        value: ethers.utils.parseEther(amount)
+      });
+      
+      setIsLoading(false);
+      setTxStatus({ success: true, hash: tx.hash, message: 'Transaction submitted! Waiting for confirmation...' });
+      setTxStatusOpen(true);
+      
+      await tx.wait();
+      
+      const newTx: Transaction = {
+        hash: tx.hash,
+        type: 'sent',
+        amount: amount,
+        token: 'ETH',
+        to: recipient,
+        timestamp: Date.now()
+      };
+      const updatedTxs = [newTx, ...transactions];
+      setTransactions(updatedTxs);
+      localStorage.setItem('wallet_transactions', JSON.stringify(updatedTxs));
+      
+      setTxStatus({ success: true, hash: tx.hash, message: `Successfully sent ${amount} ETH!` });
+      refreshBalances();
+    } catch (error: any) {
+      console.error('ETH transfer failed:', error);
+      setIsLoading(false);
+      setTxStatus({ success: false, message: `Transaction failed: ${error.message}` });
+      setTxStatusOpen(true);
     }
   };
+
+  const handleSendQTC = async (recipient: string, amount: string) => {
+    if (!quantumToken || !recipient || !amount) return;
+
+    setIsLoading(true);
+    setSendDialogOpen(false);
+    
+    try {
+      const tx = await quantumToken.transfer(recipient, ethers.utils.parseEther(amount));
+      
+      setIsLoading(false);
+      setTxStatus({ success: true, hash: tx.hash, message: 'Quantum transaction submitted! Waiting for confirmation...' });
+      setTxStatusOpen(true);
+      
+      await tx.wait();
+      
+      const newTx: Transaction = {
+        hash: tx.hash,
+        type: 'sent',
+        amount: amount,
+        token: 'QTC',
+        to: recipient,
+        timestamp: Date.now()
+      };
+      const updatedTxs = [newTx, ...transactions];
+      setTransactions(updatedTxs);
+      localStorage.setItem('wallet_transactions', JSON.stringify(updatedTxs));
+      
+      setTxStatus({ success: true, hash: tx.hash, message: `Successfully sent ${amount} QTC with quantum security!` });
+      refreshBalances();
+    } catch (error: any) {
+      console.error('QTC transfer failed:', error);
+      setIsLoading(false);
+      setTxStatus({ success: false, message: `Quantum transaction failed: ${error.message}` });
+      setTxStatusOpen(true);
+    }
+  };
+
+  const generateQuantumKey = async () => {
+    if (!quantumToken) return;
+
+    setIsGeneratingKey(true);
+    setKeyDialogOpen(false);
+    
+    try {
+      const pubSeed = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(account + Date.now()));
+      const root = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(pubSeed + 'root'));
+      
+      const tx = await quantumToken.registerPublicKey(pubSeed, root, 32, 16, 4, 16);
+      await tx.wait();
+      
+      setIsKeyRegistered(true);
+      localStorage.setItem(`quantum_key_${account}`, 'true');
+      toast.success('Quantum key generated successfully!');
+    } catch (error) {
+      console.error('Key registration failed:', error);
+      toast.error('Failed to generate quantum key');
+    } finally {
+      setIsGeneratingKey(false);
+    }
+  };
+
+  const copyAddress = () => {
+    navigator.clipboard.writeText(account);
+    toast.success('Address copied to clipboard!');
+  };
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
 
   return (
-    <Box sx={{ 
-      height: '100vh', 
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'relative', 
-      zIndex: 1,
-      p: 2
-    }}>
-      <Container maxWidth="lg" sx={{ 
-        height: '100%', 
-        display: 'flex', 
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}>
-        {/* Header - Compact */}
-        <Fade in timeout={800}>
-          <Box textAlign="center" mb={4} mt={3} className="float">
-            <Typography variant="h2" className="space-title" sx={{ mb: 0.5, fontSize: '2rem' }}>
-              QUANTUM SECURE SMART-CONTRACT
-            </Typography>
-            <Typography variant="body2" className="neon-green" sx={{ fontWeight: 500, fontSize: '0.7rem' }}>
-              [ DEVELOPED BY KORIMILLI YASH VENKAT and KAPARTHI SATHVIK ]
-            </Typography>
-          </Box>
-        </Fade>
+    <div className="min-h-screen bg-space-dark relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/6 w-72 h-72 bg-deep-space rounded-full blur-3xl opacity-15 animate-pulse" style={{ animationDuration: '5s' }} />
+        <div className="absolute bottom-1/3 right-1/5 w-80 h-80 bg-quantum-cyan rounded-full blur-3xl opacity-12 animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }} />
+        <div className="absolute top-2/3 left-2/3 w-64 h-64 bg-quantum-green rounded-full blur-3xl opacity-8 animate-pulse" style={{ animationDuration: '7s', animationDelay: '4s' }} />
+        <div className="absolute top-1/6 right-1/3 w-56 h-56 bg-quantum-amber rounded-full blur-3xl opacity-10 animate-pulse" style={{ animationDuration: '5.5s', animationDelay: '1s' }} />
+        <div className="absolute bottom-1/6 left-1/2 w-68 h-68 bg-cyber-cyan rounded-full blur-3xl opacity-9 animate-pulse" style={{ animationDuration: '6.5s', animationDelay: '3s' }} />
+      </div>
+
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-4xl">
+        {/* Header */}
+        <div className="text-center mb-12 relative">
+          <button
+            onClick={toggleDarkMode}
+            className="absolute top-0 right-0 p-2 rounded-lg shadow-md hover:shadow-lg transition-all"
+            style={{
+              backgroundColor: darkMode ? '#374151' : '#ffffff',
+              color: darkMode ? '#ffffff' : '#1e293b'
+            }}
+          >
+            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Atom className="h-12 w-12 text-cyber-cyan animate-spin" style={{ animationDuration: '3s' }} />
+            <h1 className="text-4xl md:text-5xl font-bold text-text-primary" style={{ color: darkMode ? '#ffffff' : '#1e293b' }}>
+              Quantum Secure Wallet
+            </h1>
+          </div>
+          <p className="text-text-secondary text-lg flex items-center justify-center gap-2" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+            {/* <ShieldCheck className="h-5 w-5 text-quantum-green" /> */}
+            Quantum Secure WEB3 Wallet
+          </p>
+        </div>
 
         {!account ? (
-          <Fade in timeout={1000}>
-            <Box display="flex" justifyContent="center" alignItems="flex-start" flex={1} pt={4}>
-              <Card className="space-card float" sx={{ maxWidth: 450, width: '100%' }}>
-                <CardContent sx={{ p: 4 }}>
-                  <WalletConnection onConnect={handleWalletConnect} />
-                </CardContent>
-              </Card>
-            </Box>
-          </Fade>
-        ) : (
-          <Fade in timeout={600}>
-            <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              {/* Status - Compact */}
-              <Alert 
-                severity="success" 
-                sx={{ 
-                  borderRadius: 2,
-                  background: 'rgba(57, 255, 20, 0.1)',
-                  border: '1px solid rgba(57, 255, 20, 0.3)',
-                  color: '#39ff14',
-                  mb: 2,
-                  py: 0.5
-                }}
+          <Card className="max-w-md mx-auto text-center p-8">
+            <CardContent className="space-y-6">
+              <div className="relative">
+                <Wallet className="h-20 w-20 mx-auto text-cyber-cyan mb-4" />
+                <Sparkles className="h-6 w-6 absolute top-0 right-1/3 text-quantum-amber animate-pulse" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-text-primary mb-2" style={{ color: darkMode ? '#ffffff' : '#1e293b' }}>
+                  Connect Wallet
+                </h2>
+                <p className="text-text-secondary" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+                  Connect your wallet to get started
+                </p>
+                <p className="text-sm text-text-secondary mt-2" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+                  Secure your assets with quantum-resistant technology
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={handleWalletConnect}
+                className="w-full"
               >
-                <Box display="flex" alignItems="center" width="100%">
-                  <Typography fontWeight={600} className="neon-green" fontSize="0.85rem">
-                    CONNECTED: {account.slice(0, 8)}...{account.slice(-6)}
-                  </Typography>
-                  <Box display="flex" alignItems="center" gap={3} sx={{ ml: 'auto', pl: 4 }}>
-                    <Chip 
-                      label={currentNetwork.toUpperCase()}
-                      size="small" 
-                      color="success"
-                      sx={{ fontWeight: 600, fontSize: '0.7rem', height: '20px' }}
-                    />
-                    <Button
-                      size="small"
-                      onClick={handleWalletDisconnect}
-                      sx={{ 
-                        minWidth: 'auto',
-                        px: 1.5,
-                        py: 0.25,
-                        fontSize: '0.7rem',
-                        textTransform: 'none',
-                        color: '#39ff14',
-                        border: '1px solid rgba(57, 255, 20, 0.3)',
-                        borderRadius: 1,
-                        '&:hover': {
-                          backgroundColor: 'rgba(57, 255, 20, 0.1)',
-                          borderColor: 'rgba(57, 255, 20, 0.5)'
-                        }
-                      }}
-                    >
-                      Disconnect
-                    </Button>
-                  </Box>
-                </Box>
+                <Wallet className="h-5 w-5 mr-2" />
+                Connect Wallet
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* Wallet Header */}
+            <WalletHeader
+              account={account}
+              network={currentNetwork}
+              onCopy={copyAddress}
+              onRefresh={refreshBalances}
+            />
+
+            {/* Balance Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <BalanceCard balance={ethBalance} token="ETH" variant="primary" />
+              <BalanceCard balance={qtcBalance} token="QTC" variant="secondary" />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => { setSendType('ETH'); setSendDialogOpen(true); }}
+                className="w-full"
+                style={{ color: '#ffffff' }}
+              >
+                <Send className="h-5 w-5 mr-2" />
+                <span style={{ color: '#ffffff' }}>Send ETH</span>
+              </Button>
+              <Button
+                variant="accent"
+                size="lg"
+                onClick={() => { setSendType('QTC'); setSendDialogOpen(true); }}
+                disabled={!quantumToken}
+                className="w-full"
+                style={{ color: '#ffffff' }}
+              >
+                <ShieldCheck className="h-5 w-5 mr-2" />
+                <span style={{ color: '#ffffff' }}>Send QTC</span>
+              </Button>
+            </div>
+
+            {/* Quantum Key Status */}
+            {!isKeyRegistered && quantumToken && (
+              <Alert variant="info">
+                {/* <ShieldCheck className="h-4 w-4" /> */}
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Quantum key provides enhanced security for QTC transactions</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setKeyDialogOpen(true)}
+                    className="ml-4"
+                    style={{ color: darkMode ? '#ffffff' : '#1e293b', borderColor: darkMode ? '#ffffff' : '#1e293b' }}
+                  >
+                    Generate Key
+                  </Button>
+                </AlertDescription>
               </Alert>
+            )}
 
-              {/* Main Control Panel - Single Screen */}
-              <Card className="space-card" sx={{ flex: 1, overflow: 'auto' }}>
-                <CardContent sx={{ p: 2 }}>
-                  {/* Key Manager Section */}
-                  <Box mb={2}>
-                    <Box display="flex" alignItems="center" mb={1}>
-                      <KeyIcon className="neon-blue" sx={{ mr: 1, fontSize: 20 }} />
-                      <Typography variant="h6" className="neon-blue" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-                        QUANTUM KEY GENERATOR
-                      </Typography>
-                    </Box>
-                    <KeyManager
-                      account={account}
-                      quantumToken={quantumToken}
-                      sphincs={sphincs}
-                      isKeyRegistered={isKeyRegistered}
-                      onKeyRegistered={handleKeyRegistered}
-                    />
-                  </Box>
-
-                  <Divider sx={{ 
-                    my: 1.5, 
-                    background: 'linear-gradient(90deg, transparent, #00d4ff, transparent)',
-                    height: 1
-                  }} />
-
-                  {/* Token Dashboard Section */}
-                  <Box mb={2}>
-                    <Box display="flex" alignItems="center" mb={1}>
-                      <WalletIcon className="neon-purple" sx={{ mr: 1, fontSize: 20 }} />
-                      <Typography variant="h6" className="neon-purple" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-                        QUANTUM VAULT
-                      </Typography>
-                    </Box>
-                    <TokenDashboard
-                      balance={balance}
-                      account={account}
-                      quantumToken={quantumToken}
-                      onBalanceUpdate={refreshBalance}
-                    />
-                  </Box>
-
-                  {/* Transfer Section */}
-                  {isKeyRegistered && (
-                    <>
-                      <Divider sx={{ 
-                        my: 1.5, 
-                        background: 'linear-gradient(90deg, transparent, #b347d9, transparent)',
-                        height: 1
-                      }} />
-                      <Box>
-                        <Box display="flex" alignItems="center" mb={1}>
-                          <SendIcon className="neon-green" sx={{ mr: 1, fontSize: 20 }} />
-                          <Typography variant="h6" className="neon-green" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-                            QUANTUM TRANSFER PROTOCOL
-                          </Typography>
-                        </Box>
-                        <QuantumTransfer
-                          account={account}
-                          quantumToken={quantumToken}
-                          balance={balance}
-                          onTransferComplete={refreshBalance}
+            {/* Transaction History */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Transactions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {transactions.length === 0 ? (
+                  <p className="text-center text-text-secondary py-8" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+                    No transactions yet
+                  </p>
+                ) : (
+                  <div>
+                    <div className="space-y-2">
+                      {transactions.slice(currentPage * 3, (currentPage + 1) * 3).map((tx, index) => (
+                        <TransactionItem
+                          key={currentPage * 3 + index}
+                          hash={tx.hash}
+                          type={tx.type}
+                          amount={tx.amount}
+                          token={tx.token}
+                          address={tx.to || tx.from || ''}
+                          timestamp={tx.timestamp}
+                          network={currentNetwork}
                         />
-                      </Box>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Footer - Compact */}
-              <Box textAlign="center" mt={1}>
-                <Typography variant="body2" className="neon-blue" sx={{ opacity: 0.7, fontSize: '0.7rem' }}>
-                  [ FINAL YEAR PROJECT - BLOCKCHAIN TECHNOLOGY ]
-                </Typography>
-              </Box>
-            </Box>
-          </Fade>
+                      ))}
+                    </div>
+                    {transactions.length > 3 && (
+                      <div className="flex justify-between items-center mt-4">
+                        <button
+                          onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                          disabled={currentPage === 0}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: currentPage === 0 ? 'transparent' : (darkMode ? '#374151' : '#f3f4f6'),
+                            color: currentPage === 0 ? (darkMode ? '#6b7280' : '#9ca3af') : (darkMode ? '#ffffff' : '#1e293b'),
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: currentPage === 0 ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          Previous
+                        </button>
+                        <span style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+                          Page {currentPage + 1} of {Math.ceil(transactions.length / 3)}
+                        </span>
+                        <button
+                          onClick={() => setCurrentPage(Math.min(Math.ceil(transactions.length / 3) - 1, currentPage + 1))}
+                          disabled={currentPage >= Math.ceil(transactions.length / 3) - 1}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: currentPage >= Math.ceil(transactions.length / 3) - 1 ? 'transparent' : (darkMode ? '#374151' : '#f3f4f6'),
+                            color: currentPage >= Math.ceil(transactions.length / 3) - 1 ? (darkMode ? '#6b7280' : '#9ca3af') : (darkMode ? '#ffffff' : '#1e293b'),
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: currentPage >= Math.ceil(transactions.length / 3) - 1 ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
-      </Container>
-    </Box>
+
+        {/* Dialogs */}
+        <SendDialog
+          open={sendDialogOpen}
+          onClose={() => setSendDialogOpen(false)}
+          onSend={sendType === 'ETH' ? handleSendETH : handleSendQTC}
+          token={sendType}
+          maxBalance={sendType === 'ETH' ? ethBalance : qtcBalance}
+        />
+
+        <KeyDialog
+          open={keyDialogOpen}
+          onClose={() => setKeyDialogOpen(false)}
+          onGenerate={generateQuantumKey}
+        />
+
+        {(isLoading || isGeneratingKey) && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}>
+            <div style={{
+              backgroundColor: darkMode ? '#1e293b' : '#ffffff',
+              padding: '2rem',
+              borderRadius: '12px',
+              textAlign: 'center',
+              maxWidth: '400px'
+            }}>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <h3 style={{ color: darkMode ? '#ffffff' : '#1e293b', marginBottom: '0.5rem' }}>
+                {isGeneratingKey ? 'Generating Quantum Key' : 'Processing Transaction'}
+              </h3>
+              <p style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+                {isGeneratingKey ? 'Creating quantum-resistant cryptographic keys...' : 'Please wait while your transaction is being processed...'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {txStatusOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}>
+            <div style={{
+              backgroundColor: darkMode ? '#1e293b' : '#ffffff',
+              padding: '2rem',
+              borderRadius: '12px',
+              maxWidth: '500px',
+              width: '90%'
+            }}>
+              <h3 style={{ color: darkMode ? '#ffffff' : '#1e293b', marginBottom: '1rem' }}>
+                {txStatus.success ? 'Transaction Successful' : '❌ Transaction Failed'}
+              </h3>
+              <p style={{ color: darkMode ? '#ffffff' : '#1e293b', marginBottom: '1rem' }}>
+                {txStatus.message}
+              </p>
+              {txStatus.hash && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '0.875rem' }}>
+                    Transaction Hash:
+                  </p>
+                  <div style={{
+                    fontFamily: 'monospace',
+                    wordBreak: 'break-all',
+                    backgroundColor: darkMode ? '#374151' : '#f3f4f6',
+                    padding: '0.5rem',
+                    borderRadius: '6px',
+                    marginTop: '0.5rem',
+                    color: darkMode ? '#ffffff' : '#1e293b',
+                    fontSize: '0.875rem'
+                  }}>
+                    {txStatus.hash}
+                  </div>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button 
+                  onClick={() => setTxStatusOpen(false)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'transparent',
+                    border: `1px solid ${darkMode ? '#ffffff' : '#1e293b'}`,
+                    color: darkMode ? '#ffffff' : '#1e293b',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Close
+                </button>
+                {txStatus.hash && (
+                  <button 
+                    onClick={() => window.open(`https://etherscan.io/tx/${txStatus.hash}`, '_blank')}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#6366f1',
+                      border: 'none',
+                      color: '#ffffff',
+                      borderRadius: '6px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    View on Explorer
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

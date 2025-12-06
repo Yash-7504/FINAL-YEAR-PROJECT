@@ -1,0 +1,30 @@
+{
+  "privateKey": {
+    "sk_seed": "155b8010ac937f2a836e241c02feb594764324116e299cc2934466639e24b745",
+    "sk_prf": "f172d7902a86c20b308d3ca1b7a1363288dcb8f551c8b65bf767b4ae35e20178",
+    "pub_seed": "e479db4acba92b52253022bf08cfa1fe53956548453e17a88013808e57c0f598",
+    "n": 32,
+    "h": 32,
+    "d": 4,
+    "w": 16
+  },
+  "publicKey": {
+    "pub_seed": "e479db4acba92b52253022bf08cfa1fe53956548453e17a88013808e57c0f598",
+    "root": "fb8347cf52d8d8db33b19d60e962073baa898a7927f85883636c3714410aba36",
+    "n": 32,
+    "h": 32,
+    "d": 4,
+    "w": 16
+  },
+  "metadata": {
+    "generated": "2025-12-06T14:39:04.007Z",
+    "version": "1.0.0",
+    "algorithm": "SPHINCS+",
+    "parameters": {
+      "n": 32,
+      "h": 32,
+      "d": 4,
+      "w": 16
+    }
+  }
+}
