@@ -9,8 +9,6 @@ import { BalanceCard } from '@/components/wallet/BalanceCard';
 import { WalletHeader } from '@/components/wallet/WalletHeader';
 import { TransactionItem } from '@/components/wallet/TransactionItem';
 import { SendDialog } from '@/components/wallet/SendDialog';
-import { KeyDialog } from '@/components/wallet/KeyDialog';
-import { NETWORKS, QUANTUM_TOKEN_ABI } from '../contracts/abis';
 import { Transaction } from '@/types/schema';
 import { TokenType, NetworkName } from '@/types/enums';
 import { toast } from 'sonner';
@@ -19,23 +17,18 @@ const HomePage: React.FC = () => {
   const { darkMode, toggleDarkMode } = useTheme();
   const [account, setAccount] = useState<string>('');
   const [provider, setProvider] = useState<ethers.providers.Web3Provider | null>(null);
-  const [quantumToken, setQuantumToken] = useState<ethers.Contract | null>(null);
   const [ethBalance, setEthBalance] = useState<string>('0');
-  const [qtcBalance, setQtcBalance] = useState<string>('0');
-  const [isKeyRegistered, setIsKeyRegistered] = useState<boolean>(false);
   const [currentNetwork, setCurrentNetwork] = useState<NetworkName>('Localhost');
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
-  const [keyDialogOpen, setKeyDialogOpen] = useState(false);
-  const [sendType, setSendType] = useState<TokenType>('ETH');
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('wallet_transactions');
     return saved ? JSON.parse(saved) : [];
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
   const [txStatusOpen, setTxStatusOpen] = useState(false);
   const [txStatus, setTxStatus] = useState<{ success: boolean; hash?: string; message: string }>({ success: false, message: '' });
   const [currentPage, setCurrentPage] = useState(0);
+  const [error, setError] = useState<string>('');
 
   const detectNetwork = async () => {
     if (window.ethereum) {
@@ -61,7 +54,6 @@ const HomePage: React.FC = () => {
 
   useEffect(() => {
     if (provider && account) {
-      initializeContracts();
       refreshBalances();
     }
   }, [provider, account]);
@@ -81,44 +73,12 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const initializeContracts = async () => {
-    if (!provider) return;
 
-    try {
-      const signer = provider.getSigner();
-      const network = NETWORKS.localhost;
-      
-      const tokenContract = new ethers.Contract(
-        network.contracts.QUANTUM_TOKEN,
-        QUANTUM_TOKEN_ABI,
-        signer
-      );
-
-      setQuantumToken(tokenContract);
-
-      // Check localStorage first, then contract if not found
-      const savedKeyStatus = localStorage.getItem(`quantum_key_${account}`);
-      if (savedKeyStatus === 'true') {
-        setIsKeyRegistered(true);
-      } else {
-        try {
-          const keyRegistered = await tokenContract.isPublicKeyRegistered(account);
-          setIsKeyRegistered(keyRegistered);
-          if (keyRegistered) {
-            localStorage.setItem(`quantum_key_${account}`, 'true');
-          }
-        } catch (error) {
-          setIsKeyRegistered(false);
-        }
-      }
-    } catch (error) {
-      console.error('Error initializing contracts:', error);
-    }
-  };
 
   const handleWalletConnect = async () => {
     if (window.ethereum) {
       try {
+        setError('');
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
         const accounts = await web3Provider.listAccounts();
@@ -126,32 +86,42 @@ const HomePage: React.FC = () => {
         setAccount(accounts[0]);
         await detectNetwork();
         toast.success('Wallet connected successfully!');
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error connecting wallet:', error);
-        toast.error('Failed to connect wallet');
+        const errorMsg = error.message || 'Failed to connect wallet';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } else {
-      toast.error('Please install MetaMask!');
+      const errorMsg = 'Please install MetaMask!';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
+  };
+
+  const handleWalletDisconnect = () => {
+    setAccount('');
+    setProvider(null);
+    setEthBalance('0');
+    setError('');
+    toast.success('Wallet disconnected');
   };
 
   const refreshBalances = async () => {
     if (!provider || !account) return;
 
+    console.log('Refreshing wallet balances...');
     try {
+      setError('');
       const ethBal = await provider.getBalance(account);
       setEthBalance(ethers.utils.formatEther(ethBal));
-
-      if (quantumToken) {
-        try {
-          const qtcBal = await quantumToken.balanceOf(account);
-          setQtcBalance(ethers.utils.formatEther(qtcBal));
-        } catch (error) {
-          setQtcBalance('0');
-        }
-      }
-    } catch (error) {
+      console.log('Wallet refreshed successfully');
+      toast.success('Wallet refreshed!');
+    } catch (error: any) {
       console.error('Error refreshing balances:', error);
+      const errorMsg = error.message || 'Failed to refresh balances';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
@@ -196,66 +166,9 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const handleSendQTC = async (recipient: string, amount: string) => {
-    if (!quantumToken || !recipient || !amount) return;
 
-    setIsLoading(true);
-    setSendDialogOpen(false);
-    
-    try {
-      const tx = await quantumToken.transfer(recipient, ethers.utils.parseEther(amount));
-      
-      setIsLoading(false);
-      setTxStatus({ success: true, hash: tx.hash, message: 'Quantum transaction submitted! Waiting for confirmation...' });
-      setTxStatusOpen(true);
-      
-      await tx.wait();
-      
-      const newTx: Transaction = {
-        hash: tx.hash,
-        type: 'sent',
-        amount: amount,
-        token: 'QTC',
-        to: recipient,
-        timestamp: Date.now()
-      };
-      const updatedTxs = [newTx, ...transactions];
-      setTransactions(updatedTxs);
-      localStorage.setItem('wallet_transactions', JSON.stringify(updatedTxs));
-      
-      setTxStatus({ success: true, hash: tx.hash, message: `Successfully sent ${amount} QTC with quantum security!` });
-      refreshBalances();
-    } catch (error: any) {
-      console.error('QTC transfer failed:', error);
-      setIsLoading(false);
-      setTxStatus({ success: false, message: `Quantum transaction failed: ${error.message}` });
-      setTxStatusOpen(true);
-    }
-  };
 
-  const generateQuantumKey = async () => {
-    if (!quantumToken) return;
 
-    setIsGeneratingKey(true);
-    setKeyDialogOpen(false);
-    
-    try {
-      const pubSeed = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(account + Date.now()));
-      const root = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(pubSeed + 'root'));
-      
-      const tx = await quantumToken.registerPublicKey(pubSeed, root, 32, 16, 4, 16);
-      await tx.wait();
-      
-      setIsKeyRegistered(true);
-      localStorage.setItem(`quantum_key_${account}`, 'true');
-      toast.success('Quantum key generated successfully!');
-    } catch (error) {
-      console.error('Key registration failed:', error);
-      toast.error('Failed to generate quantum key');
-    } finally {
-      setIsGeneratingKey(false);
-    }
-  };
 
   const copyAddress = () => {
     navigator.clipboard.writeText(account);
@@ -333,63 +246,42 @@ const HomePage: React.FC = () => {
           </Card>
         ) : (
           <div className="space-y-6">
+            {/* Error Display */}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
             {/* Wallet Header */}
             <WalletHeader
               account={account}
               network={currentNetwork}
               onCopy={copyAddress}
               onRefresh={refreshBalances}
+              onDisconnect={handleWalletDisconnect}
             />
 
-            {/* Balance Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Balance Card */}
+            <div className="max-w-md mx-auto">
               <BalanceCard balance={ethBalance} token="ETH" variant="primary" />
-              <BalanceCard balance={qtcBalance} token="QTC" variant="secondary" />
             </div>
 
-            {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Action Button */}
+            <div className="max-w-md mx-auto">
               <Button
                 variant="primary"
                 size="lg"
-                onClick={() => { setSendType('ETH'); setSendDialogOpen(true); }}
+                onClick={() => setSendDialogOpen(true)}
                 className="w-full"
                 style={{ color: '#ffffff' }}
               >
                 <Send className="h-5 w-5 mr-2" />
                 <span style={{ color: '#ffffff' }}>Send ETH</span>
               </Button>
-              <Button
-                variant="accent"
-                size="lg"
-                onClick={() => { setSendType('QTC'); setSendDialogOpen(true); }}
-                disabled={!quantumToken}
-                className="w-full"
-                style={{ color: '#ffffff' }}
-              >
-                <ShieldCheck className="h-5 w-5 mr-2" />
-                <span style={{ color: '#ffffff' }}>Send QTC</span>
-              </Button>
             </div>
 
-            {/* Quantum Key Status */}
-            {!isKeyRegistered && quantumToken && (
-              <Alert variant="info">
-                {/* <ShieldCheck className="h-4 w-4" /> */}
-                <AlertDescription className="flex items-center justify-between">
-                  <span>Quantum key provides enhanced security for QTC transactions</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setKeyDialogOpen(true)}
-                    className="ml-4"
-                    style={{ color: darkMode ? '#ffffff' : '#1e293b', borderColor: darkMode ? '#ffffff' : '#1e293b' }}
-                  >
-                    Generate Key
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
+
 
             {/* Transaction History */}
             <Card>
@@ -463,18 +355,12 @@ const HomePage: React.FC = () => {
         <SendDialog
           open={sendDialogOpen}
           onClose={() => setSendDialogOpen(false)}
-          onSend={sendType === 'ETH' ? handleSendETH : handleSendQTC}
-          token={sendType}
-          maxBalance={sendType === 'ETH' ? ethBalance : qtcBalance}
+          onSend={handleSendETH}
+          token="ETH"
+          maxBalance={ethBalance}
         />
 
-        <KeyDialog
-          open={keyDialogOpen}
-          onClose={() => setKeyDialogOpen(false)}
-          onGenerate={generateQuantumKey}
-        />
-
-        {(isLoading || isGeneratingKey) && (
+        {isLoading && (
           <div style={{
             position: 'fixed',
             top: 0,
@@ -496,10 +382,10 @@ const HomePage: React.FC = () => {
             }}>
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
               <h3 style={{ color: darkMode ? '#ffffff' : '#1e293b', marginBottom: '0.5rem' }}>
-                {isGeneratingKey ? 'Generating Quantum Key' : 'Processing Transaction'}
+                Processing Transaction
               </h3>
               <p style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
-                {isGeneratingKey ? 'Creating quantum-resistant cryptographic keys...' : 'Please wait while your transaction is being processed...'}
+                Please wait while your transaction is being processed...
               </p>
             </div>
           </div>

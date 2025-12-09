@@ -1,6 +1,7 @@
 import React, { useState, createContext, useContext } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { Toaster } from 'sonner';
 import HomePage from './pages/HomePage';
 import './App.css';
 
@@ -95,6 +96,7 @@ function App() {
         <div className="App">
           <HomePage />
         </div>
+        <Toaster position="top-center" richColors />
       </ThemeProvider>
     </ThemeContext.Provider>
   );
