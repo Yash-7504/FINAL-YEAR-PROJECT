@@ -894,24 +894,7 @@ contract MyQuantumSecureContract {
     return 'Transaction failed';
   };
 
-  useEffect(() => {
-    checkWalletConnection();
-  }, []);
 
-  const checkWalletConnection = async () => {
-    if ((window as any).ethereum) {
-      try {
-        const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-          const web3Provider = new ethers.providers.Web3Provider((window as any).ethereum);
-          setProvider(web3Provider);
-          setAccount(accounts[0]);
-        }
-      } catch (error) {
-        console.error('Error checking wallet connection:', error);
-      }
-    }
-  };
 
   const handleCompile = async () => {
     setIsCompiling(true);
@@ -1281,6 +1264,101 @@ contract MyQuantumSecureContract {
           <Typography variant="body2" className="neon-green" sx={{ fontSize: '0.8rem' }}>
             [ DEPLOY SMART CONTRACTS WITH POST-QUANTUM CRYPTOGRAPHY ]
           </Typography>
+        </Box>
+
+        {/* Wallet Connection Banner */}
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            p: 1.5,
+            mb: 2,
+            background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(179, 71, 217, 0.08) 100%)',
+            border: '1px solid rgba(0, 212, 255, 0.2)',
+            borderRadius: '6px',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem' }}>
+            {account ? (
+              <>
+                <span style={{ color: '#39ff14', fontWeight: 600 }}>Connected:</span> {account.slice(0, 6)}...{account.slice(-4)}
+              </>
+            ) : (
+              <span style={{ color: '#ffaa00' }}>Wallet not connected</span>
+            )}
+          </Typography>
+          {account ? (
+            <Button 
+              size="small" 
+              variant="outlined"
+              onClick={() => {
+                setAccount('');
+                setProvider(null);
+                showMessage('Wallet disconnected', 'info');
+              }}
+              sx={{
+                borderColor: 'rgba(255, 68, 68, 0.5)',
+                color: '#ff4444',
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                textTransform: 'uppercase',
+                px: 2,
+                '&:hover': {
+                  borderColor: '#ff4444',
+                  backgroundColor: 'rgba(255, 68, 68, 0.1)'
+                }
+              }}
+            >
+              Disconnect
+            </Button>
+          ) : (
+            <Button 
+              size="small" 
+              variant="contained"
+              onClick={async () => {
+                try {
+                  if (!(window as any).ethereum) {
+                    showMessage('MetaMask not installed', 'error');
+                    return;
+                  }
+                  console.log('Requesting wallet permissions from MetaMask...');
+                  // Use wallet_requestPermissions to always show account picker
+                  await (window as any).ethereum.request({ 
+                    method: 'wallet_requestPermissions',
+                    params: [{ eth_accounts: {} }]
+                  });
+                  console.log('Permission granted, getting accounts...');
+                  const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
+                  console.log('Accounts received:', accounts);
+                  if (accounts && accounts.length > 0) {
+                    const web3Provider = new ethers.providers.Web3Provider((window as any).ethereum);
+                    setProvider(web3Provider);
+                    setAccount(accounts[0]);
+                    console.log('Wallet connected:', accounts[0]);
+                    showMessage('Wallet connected successfully', 'success');
+                  }
+                } catch (error: any) {
+                  console.error('Connect wallet error:', error);
+                  showMessage('Failed to connect wallet: ' + error.message, 'error');
+                }
+              }}
+              sx={{
+                background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
+                color: '#000',
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                textTransform: 'uppercase',
+                px: 2,
+                '&:hover': {
+                  opacity: 0.9
+                }
+              }}
+            >
+              Connect Wallet
+            </Button>
+          )}
         </Box>
 
         {/* Main IDE Layout */}
