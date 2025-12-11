@@ -1490,7 +1490,7 @@ contract MyQuantumSecureContract {
                   </Alert>
                 )}
 
-                {deployedAddress && (
+                {/* {deployedAddress && (
                   <>
                     <Divider sx={{ mt: 1 }} />
                     <Typography variant="subtitle2" className="neon-green" sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
@@ -1530,7 +1530,7 @@ contract MyQuantumSecureContract {
                       </Alert>
                     )}
                   </>
-                )}
+                )} */}
 
                 <Divider sx={{ mt: 1 }} />
 
