@@ -699,9 +699,13 @@ import {
   Card,
   CardContent,
   Chip,
-  Divider
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
-import { Code, PlayArrow, Security, Publish, CheckCircle, OpenInNew } from '@mui/icons-material';
+import { Code, PlayArrow, Security, Publish, CheckCircle, OpenInNew, Close, CheckCircleOutline, ErrorOutline, InfoOutlined } from '@mui/icons-material';
 import { ethers } from 'ethers';
 import { useWeb3 } from '../hooks/useWeb3';
 
@@ -733,6 +737,7 @@ const ContractIDE: React.FC = () => {
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
   const [isQuantumKeyRegistered, setIsQuantumKeyRegistered] = useState<boolean>(false);
   const [compilationResult, setCompilationResult] = useState<any>(null);
+  const [showDialog, setShowDialog] = useState<boolean>(false);
 
   React.useEffect(() => {
     checkQuantumKeyStatus();
@@ -1045,12 +1050,6 @@ const ContractIDE: React.FC = () => {
           </Alert>
         )}
 
-        {message && (
-          <Alert severity={messageType} sx={{ mb: 3 }}>
-            {message}
-          </Alert>
-        )}
-
         <Paper elevation={3} sx={{ mb: 3 }}>
           <Tabs value={tabValue} onChange={handleTabChange} variant="fullWidth">
             <Tab icon={<Code />} label="Code Editor" />
@@ -1275,85 +1274,6 @@ const ContractIDE: React.FC = () => {
                       making it secure against both classical and quantum computer attacks.
                     </Alert>
 
-                    {/* NEW VERIFICATION SECTION STARTS HERE */}
-                    <Divider sx={{ my: 3 }} />
-                    
-                    <Typography variant="h6" gutterBottom>
-                      Contract Verification
-                    </Typography>
-                    
-                    <Card sx={{ mb: 2, bgcolor: 'background.default' }}>
-                      <CardContent>
-                        <Typography variant="subtitle1" gutterBottom>
-                          Blockchain Explorer Links (Testnet):
-                        </Typography>
-                        
-                        <Box display="flex" flexDirection="column" gap={1}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<OpenInNew />}
-                            onClick={() => window.open(`https://sepolia.etherscan.io/address/${deployedAddress}`, '_blank')}
-                            sx={{ justifyContent: 'flex-start' }}
-                          >
-                            View on Sepolia Etherscan
-                          </Button>
-                          
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<OpenInNew />}
-                            onClick={() => window.open(`https://mumbai.polygonscan.com/address/${deployedAddress}`, '_blank')}
-                            sx={{ justifyContent: 'flex-start' }}
-                          >
-                            View on Polygon Mumbai
-                          </Button>
-                          
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<OpenInNew />}
-                            onClick={() => window.open(`https://goerli.basescan.org/address/${deployedAddress}`, '_blank')}
-                            sx={{ justifyContent: 'flex-start' }}
-                          >
-                            View on Base Goerli
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-
-                    <Card sx={{ mb: 2 }}>
-                      <CardContent>
-                        <Typography variant="subtitle1" gutterBottom>
-                          Manual Verification Steps:
-                        </Typography>
-                        
-                        <Box component="ol" sx={{ pl: 2 }}>
-                          <Box component="li" sx={{ mb: 1 }}>
-                            <Typography variant="body2">
-                              <strong>Copy Contract Address:</strong> {deployedAddress}
-                            </Typography>
-                          </Box>
-                          <Box component="li" sx={{ mb: 1 }}>
-                            <Typography variant="body2">
-                              <strong>Search on Block Explorer:</strong> Paste the address in your preferred testnet explorer
-                            </Typography>
-                          </Box>
-                          <Box component="li" sx={{ mb: 1 }}>
-                            <Typography variant="body2">
-                              <strong>Verify Deployment:</strong> Check if the contract exists and has been deployed
-                            </Typography>
-                          </Box>
-                          <Box component="li" sx={{ mb: 1 }}>
-                            <Typography variant="body2">
-                              <strong>Check Quantum Signature:</strong> Look for the deployment transaction that used your quantum signature
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                    {/* VERIFICATION SECTION ENDS HERE */}
-
                     <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
                       <Button
                         variant="contained"
@@ -1395,6 +1315,45 @@ const ContractIDE: React.FC = () => {
           </TabPanel>
         </Paper>
       </Box>
+
+      {/* Message Dialog Popup */}
+      <Dialog 
+        open={message.length > 0} 
+        onClose={() => setMessage('')}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
+          {messageType === 'success' && <CheckCircleOutline sx={{ color: 'success.main', fontSize: 28 }} />}
+          {messageType === 'error' && <ErrorOutline sx={{ color: 'error.main', fontSize: 28 }} />}
+          {messageType === 'info' && <InfoOutlined sx={{ color: 'info.main', fontSize: 28 }} />}
+          <Typography variant="h6" sx={{ flex: 1 }}>
+            {messageType === 'success' && 'Success'}
+            {messageType === 'error' && 'Error'}
+            {messageType === 'info' && 'Information'}
+          </Typography>
+          <Button
+            onClick={() => setMessage('')}
+            sx={{ minWidth: 'auto', p: 1 }}
+          >
+            <Close />
+          </Button>
+        </DialogTitle>
+        <DialogContent sx={{ py: 2 }}>
+          <Typography variant="body1">
+            {message}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={() => setMessage('')}
+            variant="contained"
+            color={messageType === 'success' ? 'success' : messageType === 'error' ? 'error' : 'primary'}
+          >
+            Dismiss
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Box, Tabs, Tab } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
-import HomePage from './pages/HomePage';
 import QuantumIDE from './pages/QuantumIDE';
 import SpaceBackground from './components/SpaceBackground';
 import './App.css';
@@ -124,8 +123,7 @@ function App() {
         {/* Navigation Tabs */}
         <Box sx={{ position: 'fixed', top: 10, right: 20, zIndex: 1000 }}>
           <Tabs 
-            value={currentTab} 
-            onChange={handleTabChange}
+            value={0}
             sx={{
               '& .MuiTab-root': {
                 color: '#00d4ff',
@@ -134,14 +132,12 @@ function App() {
               }
             }}
           >
-            <Tab label="WALLET" />
             <Tab label="QUANTUM IDE" />
           </Tabs>
         </Box>
 
         {/* Page Content */}
-        {currentTab === 0 && <HomePage />}
-        {currentTab === 1 && <QuantumIDE />}
+        <QuantumIDE />
       </div>
     </ThemeProvider>
   );

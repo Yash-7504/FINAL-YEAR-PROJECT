@@ -9,11 +9,20 @@ import {
   TextField,
   Alert,
   Stack,
-  Divider
+  Divider,
+  CircularProgress,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogActions
 } from '@mui/material';
 import {
   Code as CodeIcon,
-  Rocket as DeployIcon
+  Rocket as DeployIcon,
+  Close,
+  CheckCircleOutline,
+  ErrorOutline,
+  InfoOutlined
 } from '@mui/icons-material';
 import { ethers } from 'ethers';
 
@@ -47,12 +56,24 @@ contract MyQuantumSecureContract {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState('');
   const [isVerified, setIsVerified] = useState(false);
+  const [apiUrl, setApiUrl] = useState('http://localhost:9001');
+  const [keyJson, setKeyJson] = useState<any>(null);
+  const [signedSig, setSignedSig] = useState<any>(null);
   const [etherscanApiKey, setEtherscanApiKey] = useState('196YZ6JAQCMG5TMRR9MA7Y9FMQ7GC22ZGY');
   const [compiledABI, setCompiledABI] = useState<any>(null);
   const [compiledBytecode, setCompiledBytecode] = useState<string>('');
   const [showABI, setShowABI] = useState(false);
   const [showBytecode, setShowBytecode] = useState(false);
   const [compilationError, setCompilationError] = useState('');
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+  const [isSigningBytecode, setIsSigningBytecode] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState('');
+  const [dialogType, setDialogType] = useState<'success' | 'error' | 'info'>('info');
+
+  const showMessage = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setDialogMessage(msg);
+    setDialogType(type);
+  };
 
   useEffect(() => {
     checkWalletConnection();
@@ -110,7 +131,7 @@ contract MyQuantumSecureContract {
           setCompiledABI(contract.abi);
           setCompiledBytecode(contract.evm.bytecode.object);
           setContractName(contractNames[0]);
-          alert('Contract compiled successfully!');
+          showMessage('Contract compiled successfully!', 'success');
         } else {
           setCompilationError('No contracts found');
         }
@@ -130,7 +151,7 @@ contract MyQuantumSecureContract {
 
   const handleDeploy = async () => {
     if (!provider || !account) {
-      alert('Please connect your wallet first!');
+      showMessage('Please connect your wallet first!', 'error');
       return;
     }
 
@@ -146,7 +167,7 @@ contract MyQuantumSecureContract {
       
       // Check if contract is compiled
       if (!compiledABI || !compiledBytecode) {
-        alert('Please compile the contract first!');
+        showMessage('Please compile the contract first!', 'error');
         return;
       }
       
@@ -175,11 +196,11 @@ contract MyQuantumSecureContract {
       await contract.deployed();
       
       setDeployedAddress(contract.address);
-      alert(`Contract deployed to Sepolia at: ${contract.address}`);
+      showMessage(`Contract deployed to Sepolia at: ${contract.address}`, 'success');
       
     } catch (error: any) {
       console.error('Deployment failed:', error);
-      alert(`Deployment failed: ${error.message}`);
+      showMessage(`Deployment failed: ${error.message}`, 'error');
     } finally {
       setIsDeploying(false);
     }
@@ -187,7 +208,7 @@ contract MyQuantumSecureContract {
 
   const handleVerifyContract = async () => {
     if (!deployedAddress || !etherscanApiKey) {
-      alert('Please deploy contract and enter API key first!');
+      showMessage('Please deploy contract and enter API key first!', 'error');
       return;
     }
 
@@ -270,6 +291,148 @@ contract MyQuantumSecureContract {
     }
   };
 
+  // Generate SPHINCS+ keypair via API
+  const handleGenerateKey = async () => {
+    try {
+      setIsGeneratingKey(true);
+      const resp = await fetch(`${apiUrl}/api/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+      const data = await resp.json();
+      setKeyJson(data);
+      setIsGeneratingKey(false);
+      showMessage('✓ SPHINCS+ keypair generated successfully', 'success');
+    } catch (err: any) {
+      setIsGeneratingKey(false);
+      console.error('Generate key error:', err);
+      showMessage('Generate key failed: ' + err.message, 'error');
+    }
+  };
+
+  const handleSignBytecode = async () => {
+    if (!compiledBytecode) {
+      showMessage('Compile contract first', 'error');
+      return;
+    }
+    if (!keyJson) {
+      showMessage('Generate or provide a key first', 'error');
+      return;
+    }
+
+    try {
+      setIsSigningBytecode(true);
+      const payload = compiledBytecode.startsWith('0x') ? compiledBytecode : compiledBytecode;
+      const resp = await fetch(`${apiUrl}/api/sign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          secretKey: keyJson.secretKey, 
+          payload,
+          payloadEncoding: 'hex'
+        })
+      });
+      const data = await resp.json();
+      setSignedSig(data);
+      setIsSigningBytecode(false);
+      showMessage('✓ Bytecode signed successfully (SPHINCS+)', 'success');
+    } catch (err: any) {
+      setIsSigningBytecode(false);
+      console.error('Sign error:', err);
+      showMessage('Sign failed: ' + err.message, 'error');
+    }
+  };
+
+  const handleVerifySignature = async () => {
+    if (!signedSig || !keyJson || !compiledBytecode) {
+      showMessage('Need key, compiled bytecode and signature', 'error');
+      return;
+    }
+    try {
+      const payload = compiledBytecode.startsWith('0x') ? compiledBytecode : compiledBytecode;
+      const resp = await fetch(`${apiUrl}/api/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          publicKey: keyJson.publicKey, 
+          signature: signedSig.signature,
+          leafIdx: signedSig.leafIdx,
+          authPath: signedSig.authPath,
+          payload,
+          payloadEncoding: 'hex'
+        })
+      });
+      const data = await resp.json();
+      if (data.error) {
+        showMessage('Verification error: ' + data.error, 'error');
+      } else {
+        showMessage(data.valid ? '✓ Signature is VALID!' : '✗ Signature is INVALID', data.valid ? 'success' : 'error');
+      }
+    } catch (err: any) {
+      console.error('Verify error:', err);
+      showMessage('Verify failed: ' + err.message, 'error');
+    }
+  };
+
+  const handleServerDeploy = async () => {
+    if (!compiledBytecode) {
+      showMessage('Compile first', 'error');
+      return;
+    }
+    if (!keyJson) {
+      showMessage('Generate or upload key first', 'error');
+      return;
+    }
+    if (!account) {
+      showMessage('Connect MetaMask wallet first', 'error');
+      return;
+    }
+    
+    try {
+      // Step 1: Get SPHINCS+ signature from server
+      const signResp = await fetch(`${apiUrl}/api/deploy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: keyJson, bytecode: compiledBytecode })
+      });
+      const signData = await signResp.json();
+      if (signData.error) throw new Error(signData.error);
+
+      // Step 2: Use MetaMask to send deployment transaction
+      if (!window.ethereum) {
+        showMessage('MetaMask not found', 'error');
+        return;
+      }
+      
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      
+      // Create contract factory
+      const factory = new ethers.ContractFactory(compiledABI, compiledBytecode, signer);
+      
+      // Deploy contract via MetaMask (this triggers the transaction popup)
+      // Parse constructor arguments if provided
+      const args: any[] = [];
+      if (constructorArgs && constructorArgs.trim()) {
+        try {
+          const parsed = JSON.parse(`[${constructorArgs}]`);
+          args.push(...parsed);
+        } catch {
+          args.push(constructorArgs);
+        }
+      }
+      const contract = await factory.deploy(...args);
+      const receipt = await contract.deployed();
+      
+      const deployedAddr = contract.address;
+      setDeployedAddress(deployedAddr);
+      
+      // Step 3: Record deployment in KeyRegistry (optional, for off-chain metadata)
+      showMessage(`✓ Contract deployed at: ${deployedAddr}\n\nTx: ${contract.deployTransaction?.hash}`, 'success');
+      
+    } catch (err: any) {
+      console.error('Server deploy error:', err);
+      showMessage('Deploy failed: ' + err.message, 'error');
+    }
+  };
+
   return (
     <Box sx={{ height: '100vh', overflow: 'hidden', p: 2, position: 'relative', zIndex: 1 }}>
       <Container maxWidth="xl" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -319,7 +482,7 @@ contract MyQuantumSecureContract {
 
           {/* Control Panel */}
           <Card className="space-card" sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ p: 2, flex: 1 }}>
+            <CardContent sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <Box display="flex" alignItems="center" mb={2}>
                 {/* <SecurityIcon className="neon-purple" sx={{ mr: 1, fontSize: 20 }} /> */}
                 <Typography variant="h6" className="neon-purple" sx={{ fontWeight: 700, fontSize: '1rem' }}>
@@ -327,7 +490,11 @@ contract MyQuantumSecureContract {
                 </Typography>
               </Box>
 
-              <Stack spacing={2}>
+              <Stack spacing={2} sx={{ overflow: 'auto', flex: 1, paddingRight: '8px' }}>
+                {/* Security Features */}
+                {/* <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
+                  Contract will be deployed with SPHINCS+ quantum-resistant signatures
+                </Alert> */}
                 {/* Security Features */}
                 {/* <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
                   Contract will be deployed with SPHINCS+ quantum-resistant signatures
@@ -343,7 +510,8 @@ contract MyQuantumSecureContract {
                   color="primary"
                   onClick={handleCompile}
                   disabled={isCompiling}
-                  sx={{ py: 1.5 }}
+                  fullWidth
+                  sx={{ py: 1.5, fontWeight: 600, minHeight: '48px' }}
                 >
                   {isCompiling ? 'Compiling...' : 'Compile Contract'}
                 </Button>
@@ -362,17 +530,17 @@ contract MyQuantumSecureContract {
                   <Box display="flex" gap={1}>
                     <Button
                       variant="outlined"
-                      size="small"
                       onClick={() => setShowABI(!showABI)}
-                      sx={{ flex: 1, fontSize: '0.8rem' }}
+                      fullWidth
+                      sx={{ py: 1, fontWeight: 600, minHeight: '44px' }}
                     >
                       {showABI ? 'Hide ABI' : 'Show ABI'}
                     </Button>
                     <Button
                       variant="outlined"
-                      size="small"
                       onClick={() => setShowBytecode(!showBytecode)}
-                      sx={{ flex: 1, fontSize: '0.8rem' }}
+                      fullWidth
+                      sx={{ py: 1, fontWeight: 600, minHeight: '44px' }}
                     >
                       {showBytecode ? 'Hide Bytecode' : 'Show Bytecode'}
                     </Button>
@@ -413,6 +581,59 @@ contract MyQuantumSecureContract {
                   helperText="Enter constructor arguments (e.g., strings in quotes)"
                 />
 
+                {/* Quantum Key Actions */}
+                <Divider />
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  onClick={handleGenerateKey} 
+                  fullWidth 
+                  disabled={isGeneratingKey}
+                  sx={{ py: 1.5, fontWeight: 600, minHeight: '48px' }}
+                >
+                  {isGeneratingKey ? (
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <CircularProgress size={20} color="inherit" />
+                      <span>Generating SPHINCS+ Keypair...</span>
+                    </Box>
+                  ) : (
+                    'Generate SPHINCS+ Keypair'
+                  )}
+                </Button>
+                {keyJson && (
+                  <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
+                    <Typography variant="caption" sx={{ display: 'block', fontWeight: 700 }}>Public Key:</Typography>
+                    <Typography variant="caption" sx={{ wordBreak: 'break-all' }}> {keyJson.publicKey}</Typography>
+                  </Alert>
+                )}
+
+                <Button 
+                  variant="outlined" 
+                  onClick={handleSignBytecode} 
+                  disabled={!compiledBytecode || !keyJson || isSigningBytecode}
+                  fullWidth 
+                  sx={{ py: 1.5, fontWeight: 600, minHeight: '48px' }}
+                >
+                  {isSigningBytecode ? (
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <CircularProgress size={20} />
+                      <span>Signing Bytecode...</span>
+                    </Box>
+                  ) : (
+                    'Sign Compiled Bytecode (SPHINCS+)'
+                  )}
+                </Button>
+                {signedSig && (
+                  <Alert severity="success" sx={{ fontSize: '0.75rem' }}>
+                    <Typography variant="caption" sx={{ display: 'block', fontWeight: 700 }}>Signature (truncated):</Typography>
+                    <Typography variant="caption" sx={{ wordBreak: 'break-all' }}>{signedSig.signature.slice(0, 120)}...</Typography>
+                  </Alert>
+                )}
+
+                <Button variant="outlined" onClick={handleVerifySignature} disabled={!signedSig || !keyJson || !compiledBytecode} fullWidth sx={{ py: 1.5, fontWeight: 600, minHeight: '48px' }}>Verify Signature</Button>
+
+                <Button variant="contained" color="secondary" onClick={handleServerDeploy} fullWidth sx={{ py: 1.5, fontWeight: 600, minHeight: '48px' }}>Server Deploy to Sepolia (no wallet)</Button>
+
                 {/* Deploy Button */}
                 <Button
                   variant="contained"
@@ -420,7 +641,8 @@ contract MyQuantumSecureContract {
                   onClick={handleDeploy}
                   disabled={isDeploying || !account}
                   startIcon={<DeployIcon />}
-                  sx={{ py: 1.5 }}
+                  fullWidth
+                  sx={{ py: 1.5, fontWeight: 600, minHeight: '48px' }}
                 >
                   {isDeploying ? 'Deploying to Sepolia...' : 'Deploy to Sepolia'}
                 </Button>
@@ -509,9 +731,37 @@ contract MyQuantumSecureContract {
             [ QUANTUM-RESISTANT SMART CONTRACT DEVELOPMENT ENVIRONMENT ]
           </Typography>
         </Box>
+
+        {/* Dialog for Messages */}
+        <Dialog open={dialogMessage.length > 0} onClose={() => setDialogMessage('')} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
+            {dialogType === 'success' && <CheckCircleOutline sx={{ color: 'success.main', fontSize: 28 }} />}
+            {dialogType === 'error' && <ErrorOutline sx={{ color: 'error.main', fontSize: 28 }} />}
+            {dialogType === 'info' && <InfoOutlined sx={{ color: 'info.main', fontSize: 28 }} />}
+            <Typography variant="h6" sx={{ flex: 1 }}>
+              {dialogType === 'success' ? 'Success' : dialogType === 'error' ? 'Error' : 'Information'}
+            </Typography>
+            <Button onClick={() => setDialogMessage('')} sx={{ minWidth: 'auto', p: 1 }}>
+              <Close />
+            </Button>
+          </DialogTitle>
+          <DialogContent sx={{ py: 2 }}>
+            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{dialogMessage}</Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button 
+              onClick={() => setDialogMessage('')} 
+              variant="contained" 
+              color={dialogType === 'success' ? 'success' : dialogType === 'error' ? 'error' : 'primary'}
+            >
+              OK
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );
 };
 
 export default QuantumIDE;
+

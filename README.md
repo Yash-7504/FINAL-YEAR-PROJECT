@@ -61,6 +61,42 @@ npm run deploy:local
 cd frontend && npm start
 ```
 
+## Quantum Signer & Deployer (CLI)
+
+1. Generate a SPHINCS+ keypair and sign a contract/bytecode:
+
+```bash
+# example: sign compiled bytecode
+node scripts/quantum-signer.js --in ./build/MyContract.bin --out ./keys/mykey.json
+```
+
+Output JSON contains: `publicKey`, `secretKey`, `signature`, `messageDigest`, `leafIdx`, `authPath`, `timestamp`.
+
+2. Verify signature off-chain:
+
+```bash
+node scripts/quantum-verify.js --key ./keys/mykey.json --in ./build/MyContract.bin
+```
+
+3. Deploy to Sepolia and record metadata (requires env vars):
+
+Set environment variables in a `.env` file at project root:
+
+```
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_PROJECT_ID
+DEPLOYER_PRIVATE_KEY=0x...
+KEYREGISTRY_ADDRESS=0x...   # deployed KeyRegistry contract address
+```
+
+Then run:
+
+```bash
+node scripts/quantum-deployer.js --bytecode ./build/MyContract.bin --key ./keys/mykey.json
+```
+
+This will send a raw deploy transaction and then call `recordDeployment` on the `KeyRegistry` contract to store `signatureHash` and `pubKey` on-chain.
+
+
 ## Security Analysis
 
 This implementation provides:
