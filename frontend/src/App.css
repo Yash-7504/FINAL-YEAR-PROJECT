@@ -169,3 +169,17 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Old quantum opening animation styles removed - replaced with Netflix-style animation */
+
+.main-content {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.main-content.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
