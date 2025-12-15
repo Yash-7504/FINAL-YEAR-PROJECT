@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { Box, Tabs, Tab } from '@mui/material';
 import CssBaseline from '@mui/material/CssBaseline';
 import QuantumIDE from './pages/QuantumIDE';
 import SpaceBackground from './components/SpaceBackground';
+import NetflixOpening from './components/NetflixOpening';
 import './App.css';
 
 const theme = createTheme({
@@ -109,6 +110,11 @@ const theme = createTheme({
 
 function App() {
   const [currentTab, setCurrentTab] = useState(0);
+  const [showAnimation, setShowAnimation] = useState(true);
+
+  const handleAnimationComplete = () => {
+    setShowAnimation(false);
+  };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
@@ -120,8 +126,20 @@ function App() {
       <div className="App">
         <SpaceBackground />
         
+        {/* Netflix-style Opening Animation */}
+        {showAnimation && (
+          <NetflixOpening onComplete={handleAnimationComplete} duration={5000} />
+        )}
+        
         {/* Navigation Tabs */}
-        <Box sx={{ position: 'fixed', top: 10, right: 20, zIndex: 1000 }}>
+        <Box sx={{ 
+          position: 'fixed', 
+          top: 10, 
+          right: 20, 
+          zIndex: 1000,
+          opacity: showAnimation ? 0 : 1,
+          transition: 'opacity 1s ease'
+        }}>
           <Tabs 
             value={0}
             sx={{
@@ -137,7 +155,9 @@ function App() {
         </Box>
 
         {/* Page Content */}
-        <QuantumIDE />
+        <div className={`main-content ${!showAnimation ? 'show' : ''}`}>
+          <QuantumIDE />
+        </div>
       </div>
     </ThemeProvider>
   );

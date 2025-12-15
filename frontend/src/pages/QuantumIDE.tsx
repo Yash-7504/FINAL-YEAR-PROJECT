@@ -1430,44 +1430,31 @@ contract MyQuantumSecureContract {
                   <Box display="flex" gap={1}>
                     <Button
                       variant="outlined"
-                      onClick={() => setShowABI(!showABI)}
+                      onClick={() => {
+                        navigator.clipboard.writeText(JSON.stringify(compiledABI, null, 2));
+                        showMessage('ABI copied to clipboard!', 'success');
+                      }}
                       fullWidth
                       sx={{ py: 1, fontWeight: 600, minHeight: '44px' }}
                     >
-                      {showABI ? 'Hide ABI' : 'Show ABI'}
+                      Copy ABI
                     </Button>
                     <Button
                       variant="outlined"
-                      onClick={() => setShowBytecode(!showBytecode)}
+                      onClick={() => {
+                        const bytecode = compiledBytecode.startsWith('0x') ? compiledBytecode : `0x${compiledBytecode}`;
+                        navigator.clipboard.writeText(bytecode);
+                        showMessage('Bytecode copied to clipboard!', 'success');
+                      }}
                       fullWidth
                       sx={{ py: 1, fontWeight: 600, minHeight: '44px' }}
                     >
-                      {showBytecode ? 'Hide Bytecode' : 'Show Bytecode'}
+                      Copy Bytecode
                     </Button>
                   </Box>
                 )}
 
-                {showABI && compiledABI && (
-                  <Alert severity="info" sx={{ fontSize: '0.7rem', maxHeight: '150px', overflow: 'auto' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
-                      Contract ABI:
-                    </Typography>
-                    <Typography variant="caption" component="pre" sx={{ whiteSpace: 'pre-wrap', fontSize: '0.65rem' }}>
-                      {JSON.stringify(compiledABI, null, 2)}
-                    </Typography>
-                  </Alert>
-                )}
 
-                {showBytecode && compiledBytecode && (
-                  <Alert severity="info" sx={{ fontSize: '0.7rem', maxHeight: '150px', overflow: 'auto' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
-                      Contract Bytecode:
-                    </Typography>
-                    <Typography variant="caption" sx={{ wordBreak: 'break-all', fontSize: '0.65rem' }}>
-                      {compiledBytecode.startsWith('0x') ? compiledBytecode : `0x${compiledBytecode}`}
-                    </Typography>
-                  </Alert>
-                )}
 
                 <TextField
                   label="Constructor Arguments"
