@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, RefreshCw, Wallet, LogOut } from 'lucide-react';
+import { Copy, RefreshCw, Wallet, LogOut, Shield } from 'lucide-react';
 import { formatAddress } from '@/utils/formatters';
 import { NetworkName } from '@/types/enums';
 
@@ -13,6 +13,7 @@ interface WalletHeaderProps {
   onCopy: () => void;
   onRefresh: () => void;
   onDisconnect: () => void;
+  isQuantumEncrypted?: boolean;
 }
 
 export const WalletHeader: React.FC<WalletHeaderProps> = ({ 
@@ -20,24 +21,25 @@ export const WalletHeader: React.FC<WalletHeaderProps> = ({
   network, 
   onCopy, 
   onRefresh,
-  onDisconnect 
+  onDisconnect,
+  isQuantumEncrypted = false
 }) => {
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1">
           <Avatar className="h-12 w-12">
             <AvatarFallback>
               <Wallet className="h-6 w-6" />
             </AvatarFallback>
           </Avatar>
-          <div>
+          <div className="flex-1">
             <p className="text-lg font-semibold text-text-primary">
               {formatAddress(account)}
             </p>
-            <Badge variant="secondary" className="mt-1">
-              {network}
-            </Badge>
+            <div className="flex gap-2 mt-1">
+              
+            </div>
           </div>
         </div>
         <div className="flex gap-2">

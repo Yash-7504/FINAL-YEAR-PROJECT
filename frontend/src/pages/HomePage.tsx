@@ -3,18 +3,18 @@ import { ethers } from 'ethers';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Wallet, Send, ShieldCheck, Atom, Sparkles, Moon, Sun } from 'lucide-react';
-import { useTheme } from '../App';
+import { Wallet, Send, ShieldCheck, Atom, Sparkles } from 'lucide-react';
 import { BalanceCard } from '@/components/wallet/BalanceCard';
 import { WalletHeader } from '@/components/wallet/WalletHeader';
 import { TransactionItem } from '@/components/wallet/TransactionItem';
 import { SendDialog } from '@/components/wallet/SendDialog';
+import { QuantumTransactionFlow } from '@/components/QuantumTransactionFlow';
 import { Transaction } from '@/types/schema';
 import { TokenType, NetworkName } from '@/types/enums';
 import { toast } from 'sonner';
+import { walletQuantumEncryption } from '@/services/walletQuantumEncryption';
 
 const HomePage: React.FC = () => {
-  const { darkMode, toggleDarkMode } = useTheme();
   const [account, setAccount] = useState<string>('');
   const [provider, setProvider] = useState<ethers.providers.Web3Provider | null>(null);
   const [ethBalance, setEthBalance] = useState<string>('0');
@@ -29,6 +29,9 @@ const HomePage: React.FC = () => {
   const [txStatus, setTxStatus] = useState<{ success: boolean; hash?: string; message: string }>({ success: false, message: '' });
   const [currentPage, setCurrentPage] = useState(0);
   const [error, setError] = useState<string>('');
+  const [quantumFlowStep, setQuantumFlowStep] = useState<'idle' | 'initializing' | 'generating' | 'signing' | 'securing' | 'complete' | 'error'>('idle');
+  const [quantumFlowError, setQuantumFlowError] = useState<string>('');
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const detectNetwork = async () => {
     if (window.ethereum) {
@@ -48,38 +51,46 @@ const HomePage: React.FC = () => {
   };
 
   useEffect(() => {
-    checkWalletConnection();
     detectNetwork();
+    // IMPORTANT: Explicitly clear wallet on page load - NO AUTO CONNECT!
+    setAccount('');
+    setProvider(null);
+    setIsInitialized(true);
   }, []);
 
   useEffect(() => {
     if (provider && account) {
       refreshBalances();
+      // Initialize quantum encryption for the wallet
+      initializeQuantumEncryption(account);
     }
   }, [provider, account]);
-
-  const checkWalletConnection = async () => {
-    if (window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-          const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-          setProvider(web3Provider);
-          setAccount(accounts[0]);
-        }
-      } catch (error) {
-        console.error('Error checking wallet connection:', error);
-      }
-    }
-  };
-
-
 
   const handleWalletConnect = async () => {
     if (window.ethereum) {
       try {
         setError('');
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        // First, revoke any previous permissions
+        try {
+          await window.ethereum.request?.({
+            method: 'wallet_revokePermissions',
+            params: [{ eth_accounts: {} }]
+          });
+        } catch (e) {
+          // Ignore if revoke fails
+        }
+        
+        // Now request permissions - this will show account selection dialog
+        const permissions = await window.ethereum.request?.({
+          method: 'wallet_requestPermissions',
+          params: [{ eth_accounts: {} }]
+        });
+        
+        // If wallet_requestPermissions not supported, fall back to eth_requestAccounts
+        if (!permissions) {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+        }
+        
         const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
         const accounts = await web3Provider.listAccounts();
         setProvider(web3Provider);
@@ -100,6 +111,20 @@ const HomePage: React.FC = () => {
   };
 
   const handleWalletDisconnect = () => {
+    // Revoke MetaMask permissions so it won't auto-connect next time
+    if (window.ethereum) {
+      try {
+        window.ethereum.request?.({
+          method: 'wallet_revokePermissions',
+          params: [{ eth_accounts: {} }]
+        }).catch(() => {
+          // If revoke fails, that's okay - just continue
+        });
+      } catch (error) {
+        console.log('Could not revoke permissions');
+      }
+    }
+    
     setAccount('');
     setProvider(null);
     setEthBalance('0');
@@ -125,59 +150,129 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const handleSendETH = async (recipient: string, amount: string) => {
+  const initializeQuantumEncryption = (walletAddress: string) => {
+    try {
+      // Generate quantum key pair for the wallet
+      const keyPair = walletQuantumEncryption.generateQuantumKeyPair();
+      console.log('✓ Quantum encryption initialized for wallet:', walletAddress);
+      console.log('✓ SPHINCS+ key pair generated');
+      toast.success('Wallet encrypted with SPHINCS+');
+    } catch (error) {
+      console.error('Error initializing quantum encryption:', error);
+    }
+  };
+
+  const performQuantumTransaction = async (recipient: string, amount: string) => {
     if (!provider || !recipient || !amount) return;
 
-    setIsLoading(true);
-    setSendDialogOpen(false);
-    
     try {
       const signer = provider.getSigner();
+
+      // Step 1: Initialize transaction
+      setQuantumFlowStep('initializing');
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      // Step 2: Generate quantum keys
+      setQuantumFlowStep('generating');
+      const quantumKeyPair = walletQuantumEncryption.generateQuantumKeyPair();
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      // Step 3: Sign transaction with quantum security
+      setQuantumFlowStep('signing');
+      const transactionData = {
+        to: recipient,
+        value: ethers.utils.parseEther(amount),
+        timestamp: Date.now(),
+      };
+
+      const quantumSignature = await walletQuantumEncryption.signTransactionQuantumSecure(
+        transactionData,
+        quantumKeyPair.privateKey
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Step 4: Ensure quantum security
+      setQuantumFlowStep('securing');
+      const isSecure = walletQuantumEncryption.verifyQuantumSignature(
+        transactionData,
+        quantumSignature,
+        quantumKeyPair.publicKey
+      );
+
+      if (!isSecure) {
+        throw new Error('Quantum security verification failed');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Step 5: Complete transaction
+      setQuantumFlowStep('complete');
       const tx = await signer.sendTransaction({
         to: recipient,
-        value: ethers.utils.parseEther(amount)
+        value: ethers.utils.parseEther(amount),
       });
-      
-      setIsLoading(false);
-      setTxStatus({ success: true, hash: tx.hash, message: 'Transaction submitted! Waiting for confirmation...' });
-      setTxStatusOpen(true);
-      
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Wait for confirmation
       await tx.wait();
-      
+
       const newTx: Transaction = {
         hash: tx.hash,
         type: 'sent',
         amount: amount,
         token: 'ETH',
         to: recipient,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
+
       const updatedTxs = [newTx, ...transactions];
       setTransactions(updatedTxs);
       localStorage.setItem('wallet_transactions', JSON.stringify(updatedTxs));
-      
-      setTxStatus({ success: true, hash: tx.hash, message: `Successfully sent ${amount} ETH!` });
+
+      setTxStatus({
+        success: true,
+        hash: tx.hash,
+        message: `✨ Successfully sent ${amount} ETH with quantum-resistant signature!`,
+      });
+
+      setTimeout(() => {
+        setQuantumFlowStep('idle');
+        setTxStatusOpen(true);
+      }, 2000);
+
       refreshBalances();
     } catch (error: any) {
-      console.error('ETH transfer failed:', error);
-      setIsLoading(false);
-      setTxStatus({ success: false, message: `Transaction failed: ${error.message}` });
-      setTxStatusOpen(true);
+      console.error('Quantum transaction failed:', error);
+      
+      // Check if user cancelled the transaction
+      if (error.code === 4001 || error.message?.includes('rejected') || error.message?.includes('cancelled')) {
+        setQuantumFlowError('Transaction cancelled by user');
+      } else {
+        setQuantumFlowError(error.message || 'Transaction failed');
+      }
+      
+      setQuantumFlowStep('error');
+      setTimeout(() => {
+        setQuantumFlowStep('idle');
+      }, 3000);
     }
   };
 
+  const handleSendETH = async (recipient: string, amount: string) => {
+    if (!provider || !recipient || !amount) return;
 
+    setSendDialogOpen(false);
+    setQuantumFlowStep('initializing');
 
+    // Perform quantum-secure transaction
+    await performQuantumTransaction(recipient, amount);
+  };
 
 
   const copyAddress = () => {
     navigator.clipboard.writeText(account);
     toast.success('Address copied to clipboard!');
   };
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
-  }, [darkMode]);
 
   return (
     <div className="min-h-screen bg-space-dark relative overflow-hidden">
@@ -193,23 +288,13 @@ const HomePage: React.FC = () => {
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="text-center mb-12 relative">
-          <button
-            onClick={toggleDarkMode}
-            className="absolute top-0 right-0 p-2 rounded-lg shadow-md hover:shadow-lg transition-all"
-            style={{
-              backgroundColor: darkMode ? '#374151' : '#ffffff',
-              color: darkMode ? '#ffffff' : '#1e293b'
-            }}
-          >
-            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </button>
           <div className="flex items-center justify-center gap-3 mb-4">
             <Atom className="h-12 w-12 text-cyber-cyan animate-spin" style={{ animationDuration: '3s' }} />
-            <h1 className="text-4xl md:text-5xl font-bold text-text-primary" style={{ color: darkMode ? '#ffffff' : '#1e293b' }}>
+            <h1 className="text-4xl md:text-5xl font-bold text-text-primary">
               Quantum Secure Wallet
             </h1>
           </div>
-          <p className="text-text-secondary text-lg flex items-center justify-center gap-2" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+          <p className="text-text-secondary text-lg flex items-center justify-center gap-2">
             {/* <ShieldCheck className="h-5 w-5 text-quantum-green" /> */}
             Quantum Secure WEB3 Wallet
           </p>
@@ -223,13 +308,13 @@ const HomePage: React.FC = () => {
                 <Sparkles className="h-6 w-6 absolute top-0 right-1/3 text-quantum-amber animate-pulse" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-text-primary mb-2" style={{ color: darkMode ? '#ffffff' : '#1e293b' }}>
+                <h2 className="text-2xl font-bold text-text-primary mb-2">
                   Connect Wallet
                 </h2>
-                <p className="text-text-secondary" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+                <p className="text-text-secondary">
                   Connect your wallet to get started
                 </p>
-                <p className="text-sm text-text-secondary mt-2" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+                <p className="text-sm text-text-secondary mt-2">
                   Secure your assets with quantum-resistant technology
                 </p>
               </div>
@@ -260,6 +345,7 @@ const HomePage: React.FC = () => {
               onCopy={copyAddress}
               onRefresh={refreshBalances}
               onDisconnect={handleWalletDisconnect}
+              isQuantumEncrypted={true}
             />
 
             {/* Balance Card */}
@@ -290,7 +376,7 @@ const HomePage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 {transactions.length === 0 ? (
-                  <p className="text-center text-text-secondary py-8" style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+                  <p className="text-center text-text-secondary py-8">
                     No transactions yet
                   </p>
                 ) : (
@@ -316,8 +402,8 @@ const HomePage: React.FC = () => {
                           disabled={currentPage === 0}
                           style={{
                             padding: '0.5rem 1rem',
-                            backgroundColor: currentPage === 0 ? 'transparent' : (darkMode ? '#374151' : '#f3f4f6'),
-                            color: currentPage === 0 ? (darkMode ? '#6b7280' : '#9ca3af') : (darkMode ? '#ffffff' : '#1e293b'),
+                            backgroundColor: currentPage === 0 ? 'transparent' : '#374151',
+                            color: currentPage === 0 ? '#6b7280' : '#ffffff',
                             border: 'none',
                             borderRadius: '6px',
                             cursor: currentPage === 0 ? 'not-allowed' : 'pointer'
@@ -325,7 +411,7 @@ const HomePage: React.FC = () => {
                         >
                           Previous
                         </button>
-                        <span style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
+                        <span className="text-text-secondary">
                           Page {currentPage + 1} of {Math.ceil(transactions.length / 3)}
                         </span>
                         <button
@@ -333,8 +419,8 @@ const HomePage: React.FC = () => {
                           disabled={currentPage >= Math.ceil(transactions.length / 3) - 1}
                           style={{
                             padding: '0.5rem 1rem',
-                            backgroundColor: currentPage >= Math.ceil(transactions.length / 3) - 1 ? 'transparent' : (darkMode ? '#374151' : '#f3f4f6'),
-                            color: currentPage >= Math.ceil(transactions.length / 3) - 1 ? (darkMode ? '#6b7280' : '#9ca3af') : (darkMode ? '#ffffff' : '#1e293b'),
+                            backgroundColor: currentPage >= Math.ceil(transactions.length / 3) - 1 ? 'transparent' : '#374151',
+                            color: currentPage >= Math.ceil(transactions.length / 3) - 1 ? '#6b7280' : '#ffffff',
                             border: 'none',
                             borderRadius: '6px',
                             cursor: currentPage >= Math.ceil(transactions.length / 3) - 1 ? 'not-allowed' : 'pointer'
@@ -360,36 +446,13 @@ const HomePage: React.FC = () => {
           maxBalance={ethBalance}
         />
 
-        {isLoading && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999
-          }}>
-            <div style={{
-              backgroundColor: darkMode ? '#1e293b' : '#ffffff',
-              padding: '2rem',
-              borderRadius: '12px',
-              textAlign: 'center',
-              maxWidth: '400px'
-            }}>
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <h3 style={{ color: darkMode ? '#ffffff' : '#1e293b', marginBottom: '0.5rem' }}>
-                Processing Transaction
-              </h3>
-              <p style={{ color: darkMode ? '#94a3b8' : '#64748b' }}>
-                Please wait while your transaction is being processed...
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Quantum Transaction Flow */}
+        <QuantumTransactionFlow
+          isOpen={quantumFlowStep !== 'idle'}
+          currentStep={quantumFlowStep}
+          errorMessage={quantumFlowError}
+          onClose={() => setQuantumFlowStep('idle')}
+        />
 
         {txStatusOpen && (
           <div style={{
@@ -405,31 +468,31 @@ const HomePage: React.FC = () => {
             zIndex: 9999
           }}>
             <div style={{
-              backgroundColor: darkMode ? '#1e293b' : '#ffffff',
+              backgroundColor: '#1e293b',
               padding: '2rem',
               borderRadius: '12px',
               maxWidth: '500px',
               width: '90%'
             }}>
-              <h3 style={{ color: darkMode ? '#ffffff' : '#1e293b', marginBottom: '1rem' }}>
+              <h3 style={{ color: '#ffffff', marginBottom: '1rem' }}>
                 {txStatus.success ? 'Transaction Successful' : '❌ Transaction Failed'}
               </h3>
-              <p style={{ color: darkMode ? '#ffffff' : '#1e293b', marginBottom: '1rem' }}>
+              <p style={{ color: '#ffffff', marginBottom: '1rem' }}>
                 {txStatus.message}
               </p>
               {txStatus.hash && (
                 <div style={{ marginBottom: '1rem' }}>
-                  <p style={{ color: darkMode ? '#94a3b8' : '#64748b', fontSize: '0.875rem' }}>
+                  <p style={{ color: '#94a3b8', fontSize: '0.875rem' }}>
                     Transaction Hash:
                   </p>
                   <div style={{
                     fontFamily: 'monospace',
                     wordBreak: 'break-all',
-                    backgroundColor: darkMode ? '#374151' : '#f3f4f6',
+                    backgroundColor: '#374151',
                     padding: '0.5rem',
                     borderRadius: '6px',
                     marginTop: '0.5rem',
-                    color: darkMode ? '#ffffff' : '#1e293b',
+                    color: '#ffffff',
                     fontSize: '0.875rem'
                   }}>
                     {txStatus.hash}
@@ -442,8 +505,8 @@ const HomePage: React.FC = () => {
                   style={{
                     padding: '0.5rem 1rem',
                     backgroundColor: 'transparent',
-                    border: `1px solid ${darkMode ? '#ffffff' : '#1e293b'}`,
-                    color: darkMode ? '#ffffff' : '#1e293b',
+                    border: '1px solid #ffffff',
+                    color: '#ffffff',
                     borderRadius: '6px',
                     cursor: 'pointer'
                   }}

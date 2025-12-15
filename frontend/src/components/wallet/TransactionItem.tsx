@@ -44,10 +44,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   
   return (
     <div 
-      className="flex items-center gap-3 p-3 rounded-lg transition-colors" 
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
-      }} 
+      className="flex items-center gap-3 p-3 rounded-lg transition-colors hover:bg-opacity-5 hover:bg-white" 
       onMouseLeave={(e) => {
         e.currentTarget.style.backgroundColor = 'transparent';
       }}
@@ -71,9 +68,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             variant={token === 'QTC' ? 'secondary' : 'default'} 
             className="text-xs"
             style={{
-              backgroundColor: token === 'ETH' 
-                ? (document.documentElement.getAttribute('data-theme') === 'dark' ? '#3b82f6' : '#64748b')
-                : undefined,
+              backgroundColor: token === 'ETH' ? '#3b82f6' : undefined,
               color: token === 'ETH' ? '#ffffff' : undefined
             }}
           >
@@ -88,7 +83,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
       
       <button
         onClick={openExplorer}
-        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        className="p-2 rounded-lg hover:bg-gray-700 transition-colors"
         title={`View on ${network === 'Sepolia' ? 'Sepolia Etherscan' : network === 'Polygon' ? 'Polygonscan' : network === 'Mumbai' ? 'Mumbai Polygonscan' : 'Etherscan'}`}
       >
         <ExternalLink className="h-4 w-4 text-gray-500 hover:text-blue-500" />

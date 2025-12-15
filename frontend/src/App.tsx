@@ -1,17 +1,17 @@
-import React, { useState, createContext, useContext } from 'react';
+import React, { createContext, useContext } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Toaster } from 'sonner';
 import HomePage from './pages/HomePage';
 import './App.css';
 
-const ThemeContext = createContext({ darkMode: false, toggleDarkMode: () => {} });
+const ThemeContext = createContext({ darkMode: true });
 
 export const useTheme = () => useContext(ThemeContext);
 
-const createAppTheme = (darkMode: boolean) => createTheme({
+const createAppTheme = () => createTheme({
   palette: {
-    mode: darkMode ? 'dark' : 'light',
+    mode: 'dark',
     primary: {
       main: '#6366f1',
       light: '#818cf8',
@@ -29,12 +29,12 @@ const createAppTheme = (darkMode: boolean) => createTheme({
       main: '#ef4444',
     },
     background: {
-      default: darkMode ? '#0f172a' : '#f8fafc',
-      paper: darkMode ? '#1e293b' : '#ffffff',
+      default: '#0f172a',
+      paper: '#1e293b',
     },
     text: {
-      primary: darkMode ? '#f1f5f9' : '#1e293b',
-      secondary: darkMode ? '#94a3b8' : '#64748b',
+      primary: '#f1f5f9',
+      secondary: '#94a3b8',
     },
   },
   typography: {
@@ -74,8 +74,8 @@ const createAppTheme = (darkMode: boolean) => createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          boxShadow: darkMode ? '0 1px 3px rgba(0, 0, 0, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)',
-          border: darkMode ? '1px solid #334155' : '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
+          border: '1px solid #334155',
         },
       },
     },
@@ -83,15 +83,9 @@ const createAppTheme = (darkMode: boolean) => createTheme({
 });
 
 function App() {
-  const [darkMode, setDarkMode] = useState(false);
-  
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-
   return (
-    <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
-      <ThemeProvider theme={createAppTheme(darkMode)}>
+    <ThemeContext.Provider value={{ darkMode: true }}>
+      <ThemeProvider theme={createAppTheme()}>
         <CssBaseline />
         <div className="App">
           <HomePage />
